@@ -1,5 +1,7 @@
 # iMery - 미술 작품 감상 기록 및 소셜 커뮤니티 앱
 
+> **iMery : 작품을 듣는 시간**
+
 iMery는 미술관에서 감상한 작품을 기록하고, 친구들과 감상을 공유하며 소통할 수 있는 **Web-Community App**입니다.
 React 기반의 프론트엔드와 Node.js/Express/SQLite 기반의 로컬 백엔드를 갖춘 Full-Stack 애플리케이션입니다.
 
