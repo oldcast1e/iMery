@@ -51,7 +51,7 @@ const UploadModal = ({ isOpen, onClose, onImageSelected }) => {
                 {/* Upload Options */}
                 <div className="grid grid-cols-2 gap-4">
                     {/* Camera */}
-                    <label className="flex flex-col items-center justify-center p-6 bg-white/50 rounded-3xl border border-white/40 hover:bg-white hover:shadow-premium transition-all cursor-pointer group active:scale-95">
+                    <label className="relative flex flex-col items-center justify-center p-6 bg-white/50 rounded-3xl border border-white/40 hover:bg-white hover:shadow-premium transition-all cursor-pointer group active:scale-95">
                         <div className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center mb-3 shadow-premium group-hover:scale-110 transition-transform">
                             <Camera size={24} />
                         </div>
@@ -61,13 +61,13 @@ const UploadModal = ({ isOpen, onClose, onImageSelected }) => {
                             accept="image/*"
                             capture="environment"
                             onChange={handleFileSelect}
-                            className="hidden"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         />
                     </label>
 
                     {/* Gallery */}
-                    <label className="flex flex-col items-center justify-center p-6 bg-white/50 rounded-3xl border border-white/40 hover:bg-white hover:shadow-premium transition-all cursor-pointer group active:scale-95">
-                        <div className="w-12 h-12 bg-accent-500 text-white rounded-2xl flex items-center justify-center mb-3 shadow-premium group-hover:scale-110 transition-transform">
+                    <label className="relative flex flex-col items-center justify-center p-6 bg-white/50 rounded-3xl border border-white/40 hover:bg-white hover:shadow-premium transition-all cursor-pointer group active:scale-95">
+                        <div className="w-12 h-12 bg-blue-500 text-white rounded-2xl flex items-center justify-center mb-3 shadow-premium group-hover:scale-110 transition-transform">
                             <ImageIcon size={24} />
                         </div>
                         <span className="text-xs font-bold text-gray-800">갤러리</span>
@@ -75,7 +75,7 @@ const UploadModal = ({ isOpen, onClose, onImageSelected }) => {
                             type="file"
                             accept="image/*"
                             onChange={handleFileSelect}
-                            className="hidden"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         />
                     </label>
                 </div>

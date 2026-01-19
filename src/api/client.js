@@ -1,4 +1,7 @@
-const BASE_URL = 'http://localhost:3001';
+// Automatically detect if running on localhost or network IP
+const BASE_URL = window.location.hostname === 'localhost'
+    ? 'http://localhost:3001'
+    : `http://${window.location.hostname}:3001`;
 
 const getAuthHeaders = () => {
     const user = JSON.parse(localStorage.getItem('imery-user'));

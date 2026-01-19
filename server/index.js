@@ -20,6 +20,17 @@ app.use(express.json());
 // Serve uploaded images statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Request Logging Middleware
+app.use((req, res, next) => {
+    const start = Date.now();
+    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        console.log(`  └─ Status: ${res.statusCode} (${duration}ms)`);
+    });
+    next();
+});
+
 // Multer Setup
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {

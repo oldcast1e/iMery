@@ -21,28 +21,9 @@ npm install
 ```
 
 ## 3. 데이터베이스 설정 (Database Setup)
-MySQL 데이터베이스가 실행 중이어야 합니다.
+이 프로젝트는 현재 **SQLite** (로컬 파일 DB)를 사용하도록 설정되어 있습니다. 별도의 DB 설치 과정 없이 서버 실행 시 `server/database.sqlite` 파일이 자동으로 생성됩니다.
 
-1. MySQL 접속 및 데이터베이스 생성:
-```sql
-CREATE DATABASE imery_db;
-USE imery_db;
-```
-
-2. 테이블 생성:
-`assets/text/database_setting.md` 파일에 명시된 SQL 쿼리를 순서대로 실행하여 테이블을 생성하세요. (Users, Posts, Comments, Likes, Friendships 등)
-
-3. 서버 DB 연결 설정:
-`server/db.js` 파일에서 DB 연결 정보를 본인의 환경에 맞게 확인/수정하세요.
-```javascript
-// server/db.js 예시
-const connection = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'YOUR_PASSWORD', // 본인의 DB 비밀번호
-  database: 'imery_db'
-});
-```
+> **참고**: `server/db.js` 파일에서 테이블 생성 코드를 확인할 수 있습니다. 만약 MySQL 등 외부 DB를 연결하려면 해당 파일을 수정해야 합니다.
 
 ## 4. 프로젝트 실행 (Running the Project)
 
