@@ -1,0 +1,271 @@
+import { useState, useEffect } from 'react';
+import { X, Star, Check } from 'lucide-react';
+
+const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null }) => {
+    const [formData, setFormData] = useState({
+        artist: '',
+        title: '',
+        category: '그림',
+        rating: 5,
+        review: '',
+        tags: [],
+        date: new Date().toISOString().split('T')[0] // local state YYYY-MM-DD
+    });
+
+    // UI state for "Unknown Artist"
+    const [isUnknownArtist, setIsUnknownArtist] = useState(false);
+
+    const categories = ['그림', '조각', '사진', '판화', '기타'];
+
+    // Populate form when editing existing work
+    useEffect(() => {
+        if (existingWork) {
+            setFormData({
+                artist: existingWork.artist || existingWork.artist_name || '',
+                title: existingWork.title || '',
+                category: existingWork.category || '그림',
+                rating: existingWork.rating || 5,
+                review: existingWork.review || existingWork.description || '',
+                tags: existingWork.tags || [],
+                date: (existingWork.work_date || existingWork.date || '').replace(/\./g, '-').slice(0, 10) || new Date().toISOString().split('T')[0],
+            });
+            if (existingWork.artist === '작가 미상' || existingWork.artist_name === '작가 미상') {
+                setIsUnknownArtist(true);
+            } else {
+                setIsUnknownArtist(false);
+            }
+        } else {
+            // Reset for new work
+            setFormData({
+                artist: '',
+                title: '',
+                category: '그림',
+                rating: 5,
+                review: '',
+                tags: [],
+                date: new Date().toISOString().split('T')[0],
+            });
+            setIsUnknownArtist(false);
+        }
+    }, [existingWork, isOpen]);
+
+    const handleUnknownArtistToggle = () => {
+        const newState = !isUnknownArtist;
+        setIsUnknownArtist(newState);
+        if (newState) {
+            setFormData(prev => ({ ...prev, artist: '작가 미상' }));
+        } else {
+            setFormData(prev => ({ ...prev, artist: '' }));
+        }
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        // Validation
+        if (!formData.title.trim()) {
+            alert('작품 이름을 입력해주세요.');
+            return;
+        }
+        if (!formData.artist.trim()) {
+            alert('작가 이름을 입력해주세요.');
+            return;
+        }
+
+        const workData = {
+            ...formData,
+            artist_name: formData.artist, // Map for API
+            description: formData.review, // Map for API
+            work_date: formData.date.replace(/-/g, '.'), // API expectation YYYY.MM.DD
+        };
+
+        if (existingWork) {
+            // Editing existing work
+            onSave({
+                ...existingWork,
+                ...workData,
+                id: existingWork.id,
+            });
+        } else {
+            // Creating new work
+            onSave({
+                ...workData,
+                id: Date.now(),
+                date: formData.date.replace(/-/g, '.'),
+                thumbnail: imageData, // Local preview
+                image_url: imageData, // API expectation (base64)
+            });
+        }
+
+        onClose();
+    };
+
+    const handleStarClick = (rating) => {
+        setFormData({ ...formData, rating });
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 backdrop-blur-md px-4 pb-24">
+            <div className="w-full max-w-lg bg-white shadow-apple rounded-[2.5rem] p-8 animate-fade-in-up border border-gray-100 max-h-[80vh] overflow-y-auto no-scrollbar">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-2xl font-serif font-bold tracking-tight">
+                        {existingWork ? '작품 수정' : '감상평 작성'}
+                    </h2>
+                    <button
+                        onClick={onClose}
+                        className="p-2 glass hover:bg-white rounded-full transition-all active:scale-90 shadow-sm border border-white/20"
+                    >
+                        <X size={20} className="text-gray-500" />
+                    </button>
+                </div>
+
+                {/* Image Preview */}
+                {(imageData || existingWork?.thumbnail || existingWork?.image_url) && (
+                    <div className="mb-8 rounded-3xl overflow-hidden shadow-premium border-2 border-white">
+                        <img
+                            src={imageData || existingWork?.thumbnail || existingWork?.image_url}
+                            alt="Work"
+                            className="w-full h-40 object-cover"
+                        />
+                    </div>
+                )}
+
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="space-y-6">
+
+                    {/* 1. Artist Name */}
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <label className="text-[11px] font-bold text-gray-400 tracking-widest uppercase px-1">Artist</label>
+                            <button
+                                type="button"
+                                onClick={handleUnknownArtistToggle}
+                                className={`text-[10px] px-3 py-1 rounded-full font-bold transition-all border ${isUnknownArtist
+                                    ? 'bg-black text-white border-black'
+                                    : 'bg-white/50 text-gray-500 border-white/40 hover:bg-white hover:text-black'
+                                    }`}
+                            >
+                                작가 미상
+                            </button>
+                        </div>
+                        <input
+                            type="text"
+                            value={formData.artist}
+                            onChange={(e) => {
+                                setFormData({ ...formData, artist: e.target.value });
+                                if (isUnknownArtist && e.target.value !== '작가 미상') {
+                                    setIsUnknownArtist(false);
+                                }
+                            }}
+                            placeholder="작가 이름을 입력하세요"
+                            className="w-full px-5 py-3 glass rounded-2xl focus:outline-none focus:ring-2 focus:ring-black/5 border-white/40 text-sm font-medium transition-all"
+                            required
+                        />
+                    </div>
+
+                    {/* 2. Title */}
+                    <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-gray-400 tracking-widest uppercase px-1">Title</label>
+                        <input
+                            type="text"
+                            value={formData.title}
+                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                            placeholder="작품의 제목을 입력하세요"
+                            className="w-full px-5 py-3 glass rounded-2xl focus:outline-none focus:ring-2 focus:ring-black/5 border-white/40 text-sm font-medium transition-all"
+                            required
+                        />
+                    </div>
+
+                    {/* 2.5 Date */}
+                    <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-gray-400 tracking-widest uppercase px-1">Date</label>
+                        <input
+                            type="date"
+                            value={formData.date}
+                            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                            className="w-full px-5 py-3 glass rounded-2xl focus:outline-none focus:ring-2 focus:ring-black/5 border-white/40 text-sm font-medium transition-all"
+                            required
+                        />
+                    </div>
+
+                    {/* 3. Category */}
+                    <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-gray-400 tracking-widest uppercase px-1">Category</label>
+                        <div className="flex gap-2 flex-wrap">
+                            {categories.map((category) => (
+                                <button
+                                    key={category}
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, category })}
+                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${formData.category === category
+                                        ? 'bg-black text-white shadow-premium'
+                                        : 'bg-white/50 text-gray-400 hover:text-black hover:bg-white'
+                                        }`}
+                                >
+                                    {category}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 4. Rating */}
+                    <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-gray-400 tracking-widest uppercase px-1">Rating</label>
+                        <div className="flex justify-between items-center glass p-3 rounded-2xl border-white/40">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                    key={star}
+                                    type="button"
+                                    onClick={() => handleStarClick(star)}
+                                    className="flex-1 flex justify-center py-1 transition-transform active:scale-125"
+                                >
+                                    <Star
+                                        size={28}
+                                        className={`transition-all duration-300 ${star <= formData.rating
+                                            ? 'fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]'
+                                            : 'text-gray-200'
+                                            }`}
+                                    />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 5. Review */}
+                    <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-gray-400 tracking-widest uppercase px-1">Review</label>
+                        <textarea
+                            value={formData.review}
+                            onChange={(e) => setFormData({ ...formData, review: e.target.value })}
+                            placeholder="작품을 보며 느낀 점을 기록하세요..."
+                            rows={4}
+                            className="w-full px-5 py-4 glass rounded-[2rem] focus:outline-none focus:ring-2 focus:ring-black/5 border-white/40 text-sm font-medium leading-relaxed resize-none transition-all no-scrollbar"
+                        />
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex gap-4 pt-4">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex-1 py-4 glass text-black rounded-3xl font-bold text-sm tracking-tight hover:bg-white transition-all active:scale-95 border-white/40"
+                        >
+                            취소
+                        </button>
+                        <button
+                            type="submit"
+                            className="flex-[1.5] py-4 bg-black text-white rounded-3xl font-bold text-sm tracking-tight hover:bg-gray-800 transition-all active:scale-95 shadow-premium"
+                        >
+                            {existingWork ? '수정하기' : '기록하기'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+export default ReviewForm;
