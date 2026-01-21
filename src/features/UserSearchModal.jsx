@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, UserPlus, X, UserCheck } from 'lucide-react';
+import { Search, UserPlus, X, UserCheck, CheckCircle } from 'lucide-react';
 import api from '../api/client';
 
 const UserSearchModal = ({ isOpen, onClose, currentUser }) => {
@@ -7,6 +7,12 @@ const UserSearchModal = ({ isOpen, onClose, currentUser }) => {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [sentRequests, setSentRequests] = useState([]);
+    const [toast, setToast] = useState(null);
+
+    const showToast = (message) => {
+        setToast(message);
+        setTimeout(() => setToast(null), 3000);
+    };
 
     const handleSearch = async () => {
         if (!query.trim()) return;
@@ -18,18 +24,31 @@ const UserSearchModal = ({ isOpen, onClose, currentUser }) => {
             setResults(filtered);
         } catch (error) {
             console.error(error);
+            showToast('검색 중 오류가 발생했습니다.');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleRequest = async (targetUserId) => {
+    const handleRequest = async (targetUserId, nickname) => {
         try {
             await api.requestFriend(currentUser.user_id, targetUserId);
             setSentRequests(prev => [...prev, targetUserId]);
-            alert('친구 요청을 보냈습니다.');
+            showToast(`${nickname}님에게 친구 요청을 보냈습니다! 🎉`);
         } catch (error) {
-            alert('친구 요청 실패: ' + error.message);
+            showToast('친구 요청 실패: ' + error.message);
+        }
+    };
+
+    const handleKeyDown = async (e) => {
+        if (e.key === 'Enter' && query.trim()) {
+            await handleSearch();
+            // Auto-send request to first result after search completes
+            setTimeout(async () => {
+                if (results.length > 0 && !sentRequests.includes(results[0].id)) {
+                    await handleRequest(results[0].id, results[0].nickname);
+                }
+            }, 500);
         }
     };
 
@@ -37,6 +56,18 @@ const UserSearchModal = ({ isOpen, onClose, currentUser }) => {
 
     return (
         <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+            {/* Toast Notification */}
+            {toast && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[80] animate-in slide-in-from-top-4 fade-in duration-300">
+                    <div className="bg-white px-4 py-3 sm:px-6 sm:py-4 rounded-2xl shadow-2xl border border-gray-100 flex items-center gap-2 sm:gap-3 max-w-[90vw] sm:max-w-md">
+                        <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <CheckCircle size={20} className="text-green-600" />
+                        </div>
+                        <p className="text-xs sm:text-sm font-medium text-gray-800 flex-1">{toast}</p>
+                    </div>
+                </div>
+            )}
+
             <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fade-in-up">
                 {/* Header */}
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center">
@@ -53,11 +84,11 @@ const UserSearchModal = ({ isOpen, onClose, currentUser }) => {
                             <Search size={18} className="text-gray-400" />
                             <input
                                 type="text"
-                                placeholder="닉네임으로 검색"
+                                placeholder="닉네임 입력 후 Enter"
                                 className="flex-1 outline-none text-sm"
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                onKeyDown={handleKeyDown}
                             />
                         </div>
                         <button
@@ -68,6 +99,7 @@ const UserSearchModal = ({ isOpen, onClose, currentUser }) => {
                             검색
                         </button>
                     </div>
+                    <p className="text-xs text-gray-500 mt-2">💡 Enter 키로 빠른 친구 요청</p>
                 </div>
 
                 {/* Results */}
@@ -94,7 +126,7 @@ const UserSearchModal = ({ isOpen, onClose, currentUser }) => {
                                         </button>
                                     ) : (
                                         <button
-                                            onClick={() => handleRequest(user.id)}
+                                            onClick={() => handleRequest(user.id, user.nickname)}
                                             className="text-white bg-blue-500 hover:bg-blue-600 flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
                                         >
                                             <UserPlus size={14} /> 추가

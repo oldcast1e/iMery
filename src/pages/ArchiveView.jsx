@@ -139,9 +139,12 @@ function CalendarTab({ works, user, onDateClick }) {
     const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
     const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
+    // Filter to only show USER's own works (not friends)
+    const myWorks = works.filter(w => Number(w.user_id) === Number(user.user_id));
+
     // Map works to days
     const worksByDay = {};
-    works.forEach(w => {
+    myWorks.forEach(w => {
         // use work_date if available, else date
         const dateStr = w.work_date || w.date || "";
         // More robust parsing: extract first three number groups (y, m, d)

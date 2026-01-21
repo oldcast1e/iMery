@@ -350,7 +350,10 @@ function App() {
     if (selectedWork) {
       return (
         <WorkDetailView
-          work={selectedWork}
+          work={{
+            ...selectedWork,
+            onAnalysisComplete: refreshWorks
+          }}
           user={user}
           onBack={() => setSelectedWork(null)}
         />

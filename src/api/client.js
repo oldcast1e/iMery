@@ -136,7 +136,9 @@ const api = {
 
     searchUsers: async (nickname) => {
         const response = await fetch(`${BASE_URL}/users/search?nickname=${nickname}`, { headers: getAuthHeaders() });
-        return response.json();
+        const data = await response.json();
+        // Ensure we always return an array
+        return Array.isArray(data) ? data : (data.users || []);
     },
 
     requestFriend: async (requester_id, addressee_id) => {

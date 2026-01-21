@@ -39,6 +39,11 @@ const WorkDetailView = ({ work, onBack, user }) => {
             };
             setAnalysisData(flattened);
             setAnalysisError(null);
+
+            // Refresh parent's work data to get updated ai_summary from DB
+            if (work.onAnalysisComplete) {
+                work.onAnalysisComplete();
+            }
         } catch (e) {
             console.error('[AI Analysis Error]:', e);
             setAnalysisError(e.message || 'AI 분석 중 오류가 발생했습니다.');
@@ -191,33 +196,54 @@ const WorkDetailView = ({ work, onBack, user }) => {
                         </div>
                     </div>
 
-                    {/* AI Analysis Button */}
-                    <button
-                        onClick={handleAnalyze}
-                        disabled={isAnalyzing}
-                        className={`w-full py-4 mb-4 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 relative overflow-hidden ${isAnalyzing
+                    {/* AI Analysis Button or Summary Display */}
+                    {(work.ai_summary || analysisData?.ai_summary) ? (
+                        /* AI Summary Display - Same position as button */
+                        <div className="w-full py-4 px-5 mb-4 rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border-2 border-indigo-200 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center shadow-md">
+                                    <Sparkles size={20} className="text-white" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                                        <span>AI 분석 결과</span>
+                                        <span className="px-2 py-0.5 bg-indigo-100 text-indigo-600 text-[10px] font-bold rounded-full">완료</span>
+                                    </h4>
+                                    <p className="text-sm text-gray-700 leading-relaxed">
+                                        {analysisData?.ai_summary || work.ai_summary}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        /* AI Analysis Button */
+                        <button
+                            onClick={handleAnalyze}
+                            disabled={isAnalyzing}
+                            className={`w-full py-4 mb-4 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 relative overflow-hidden ${isAnalyzing
                                 ? 'bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 text-white cursor-wait'
                                 : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:shadow-xl hover:scale-[1.02]'
-                            }`}
-                    >
-                        {isAnalyzing && (
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
-                        )}
-                        {isAnalyzing ? (
-                            <>
-                                <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
-                                <span className="text-sm sm:text-base font-bold">
-                                    AI가 작품을 감상 중입니다...
-                                    <span className="hidden sm:inline"> (약 90초 소요)</span>
-                                </span>
-                            </>
-                        ) : (
-                            <>
-                                <Sparkles size={20} className="animate-pulse" />
-                                <span className="text-sm sm:text-base">AI 분석 받아보기</span>
-                            </>
-                        )}
-                    </button>
+                                }`}
+                        >
+                            {isAnalyzing && (
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                            )}
+                            {isAnalyzing ? (
+                                <>
+                                    <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                                    <span className="text-sm sm:text-base font-bold">
+                                        AI가 작품을 감상 중입니다...
+                                        <span className="hidden sm:inline"> (약 90초 소요)</span>
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles size={20} className="animate-pulse" />
+                                    <span className="text-sm sm:text-base">AI 분석 받아보기</span>
+                                </>
+                            )}
+                        </button>
+                    )}
 
                     {/* Error Message */}
                     {analysisError && (
@@ -332,18 +358,6 @@ const WorkDetailView = ({ work, onBack, user }) => {
                                 {work.review}
                             </p>
                         </div>
-
-                        {/* AI Summary Text */}
-                        {(analysisData?.ai_summary || work.ai_summary) && (
-                            <div className="animate-in fade-in duration-700">
-                                <h3 className="text-lg font-bold mb-3 border-b border-gray-100 pb-2 flex items-center gap-2">
-                                    <span className="text-indigo-600">✨ AI Insight</span>
-                                </h3>
-                                <div className="bg-indigo-50/50 p-4 rounded-2xl text-sm text-gray-700 leading-relaxed border border-indigo-100/50 italic">
-                                    "{analysisData?.ai_summary || work.ai_summary}"
-                                </div>
-                            </div>
-                        )}
 
 
 
