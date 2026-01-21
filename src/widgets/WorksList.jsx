@@ -30,8 +30,10 @@ const WorksList = ({
         }
     };
 
-    const visibleWorks = works.slice(0, visibleCount);
-    const hasMore = visibleCount < works.length;
+    // Only slice if showPagination is true (internal pagination)
+    // If false, parent component (HomeView) handles pagination
+    const visibleWorks = showPagination ? works.slice(0, visibleCount) : works;
+    const hasMore = showPagination && visibleCount < works.length;
 
     if (works.length === 0) {
         return (
@@ -70,7 +72,12 @@ const WorksList = ({
 
                             {/* Content */}
                             <div onClick={() => onWorkClick && onWorkClick(work)} className="flex-grow min-w-0">
-                                <h3 className="font-semibold text-black truncate">{work.title}</h3>
+                                <h3 className="font-semibold text-black truncate flex items-center gap-1.5">
+                                    {work.title}
+                                    {work.music_url && (
+                                        <Music size={14} className="text-gray-400 flex-shrink-0" />
+                                    )}
+                                </h3>
                                 <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
                                     <span className="font-medium text-black">{work.artist}</span>
                                     <span>•</span>
@@ -112,19 +119,17 @@ const WorksList = ({
                                             e.stopPropagation();
                                             onBookmarkToggle(work.id);
                                         }}
-                                        className={`transition-all ${hoveredWork === work.id || bookmarkedIds.includes(work.id) ? 'opacity-100' : 'opacity-0'}`}
+                                        className="mt-1 text-gray-400 hover:text-black transition-colors"
                                     >
-                                        <Bookmark size={18} className={bookmarkedIds.includes(work.id) ? 'fill-black text-black' : 'text-gray-400 hover:text-black'} />
+                                        <Bookmark size={18} className={bookmarkedIds.includes(work.id) ? 'fill-black text-black' : ''} />
                                     </button>
                                 )}
 
-                                {work.music_url && (
-                                    <Music size={16} className="text-gray-400" />
-                                )}
+
 
                                 {(onEditClick || onDeleteClick) && (
-                                    <div className="flex gap-1 mt-auto">
-                                        {onEditClick && <button onClick={(e) => { e.stopPropagation(); onEditClick(work); }} className="p-1.5 hover:bg-gray-100 rounded-lg"><Edit2 size={14} className="text-gray-500" /></button>}
+                                    <div className={`flex gap-1 mt-auto transition-opacity duration-200 ${hoveredWork === work.id ? 'opacity-100' : 'opacity-0'}`}>
+                                        {onEditClick && <button onClick={(e) => { e.stopPropagation(); onEditClick(work); }} className="p-1.5 hover:bg-gray-100 rounded-lg"><Edit2 size={14} className="text-gray-400" /></button>}
                                         {onDeleteClick && <button onClick={(e) => { e.stopPropagation(); onDeleteClick(work); }} className="p-1.5 hover:bg-red-50 rounded-lg"><Trash2 size={14} className="text-red-500" /></button>}
                                     </div>
                                 )}

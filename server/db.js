@@ -189,6 +189,8 @@ export const initDb = async () => {
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN style VARCHAR(50)"); } catch (e) { }
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN tags TEXT"); } catch (e) { }
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN analysis_id INT"); } catch (e) { }
+  // Use TINYINT(1) for MySQL/TiDB compatibility instead of BOOLEAN
+  try { await pool.execute("ALTER TABLE Posts ADD COLUMN is_analyzed TINYINT(1) DEFAULT 0"); } catch (e) { }
 
   return new DatabaseWrapper(pool);
 };

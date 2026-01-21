@@ -1,5 +1,6 @@
 import { Share2, Clock, Tag, Bookmark, Edit2, Play, Pause, Music, Sparkles } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/client';
 
 const WorkDetailView = ({ work, onBack, user }) => {
@@ -9,38 +10,127 @@ const WorkDetailView = ({ work, onBack, user }) => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisData, setAnalysisData] = useState(null);
     const [analysisError, setAnalysisError] = useState(null);
+    const [showToast, setShowToast] = useState(false);
     const audioRef = useRef(null);
 
+    // 1. Auto-Reveal Analysis State
+    useEffect(() => {
+        // Strict check: Only reveal if backend says is_analyzed is true
+        // This ensures if user never clicked, they see the button first
+        if (work.is_analyzed && work.ai_summary) {
+            setAnalysisData({
+                ...work,
+                ai_summary: work.ai_summary,
+                ai_genre: work.genre,
+                style1: work.style1, score1: work.score1,
+                style2: work.style2, score2: work.score2,
+                style3: work.style3, score3: work.score3,
+                style4: work.style4, score4: work.score4,
+                style5: work.style5, score5: work.score5,
+                is_analyzed: true
+            });
+        }
+    }, [work.id, work.is_analyzed, work.ai_summary]);
+
+    // 2. Auto-Play Music (Only on mount/Work change)
     useEffect(() => {
         loadComments();
-        if (work.analysis_id) {
-            setAnalysisData(work); // If already analyzed, work object contains analysis fields
+
+        if (work.music_url) {
+            const timer = setTimeout(() => {
+                // Ensure we don't interrupt if already playing
+                if (audioRef.current && audioRef.current.paused) {
+                    audioRef.current.play()
+                        .then(() => setIsPlaying(true))
+                        .catch(e => console.log("Autoplay blocked:", e));
+                }
+            }, 800);
+            return () => clearTimeout(timer);
         }
-    }, [work.id, work.analysis_id]);
+    }, [work.id]); // Run ONLY when work ID changes
 
     const handleAnalyze = async () => {
         if (isAnalyzing) return;
         setIsAnalyzing(true);
         setAnalysisError(null);
+
         try {
-            const data = await api.analyzePost(work.id);
+            // Artificial delay to show "generating" effect (2 seconds)
+            const delayPromise = new Promise(resolve => setTimeout(resolve, 2000));
+
+            // 1. Check if we already have the summary locally (Optimization & Resilience)
+            if (work.ai_summary && work.ai_summary !== "AI가 그림을 분석 중이에요!") {
+                console.log('Using existing AI summary from prop (Resilience Mode)');
+
+                // Construct analysis data from work prop
+                // We use existing work data as the analysis result
+                const localData = {
+                    ...work,
+                    ai_genre: work.genre,
+                    ai_summary: work.ai_summary,
+                    // Use existing styles
+                    style1: work.style1, score1: work.score1,
+                    style2: work.style2, score2: work.score2,
+                    style3: work.style3, score3: work.score3,
+                    style4: work.style4, score4: work.score4,
+                    style5: work.style5, score5: work.score5,
+                    is_analyzed: true
+                };
+
+                await delayPromise;
+                setAnalysisData(localData);
+
+                // Try to persist the reveal state to backend
+                // If this fails (e.g. old server code), we catch it but users still see the result!
+                try {
+                    await api.analyzePost(work.id);
+                } catch (e) {
+                    console.warn("Backend persistence failed, but showing local result:", e);
+                    // Do NOT setAnalysisError here, because we successfully showed the data!
+                }
+
+                setIsAnalyzing(false);
+                return;
+            }
+
+            // 2. Local Description Fallback
+            let data;
+
+            if (work.description) {
+                // Determine if we should use description as fallback
+                // But usually we prefer API if we want "AI" feeling. 
+                // However, preserving existing logic while adding delay:
+                console.log('Using existing description');
+                data = {
+                    result: {
+                        genre: work.genre || '그림',
+                        styles: [] // We might not have styles if just using description
+                    },
+                    ai_summary: work.description
+                };
+            } else {
+                data = await api.analyzePost(work.id);
+            }
+
+            // Wait for delay to finish
+            await delayPromise;
+
             // The API returns { result: { genre, styles, ... }, ai_summary, ... }
-            // We flattern it for easier UI binding
             const flattened = {
                 ...data.result,
-                ai_genre: data.result.genre,
+                ai_genre: data.result?.genre,
                 ai_summary: data.ai_summary,
                 // Map styles array to style1~5 for the chart
-                ...data.result.styles.reduce((acc, s, i) => ({
+                ...(data.result?.styles || []).reduce((acc, s, i) => ({
                     ...acc,
                     [`style${i + 1}`]: s.name,
                     [`score${i + 1}`]: s.score
-                }), {})
+                }), {}),
+                is_analyzed: true // Mark as revealed
             };
             setAnalysisData(flattened);
             setAnalysisError(null);
 
-            // Refresh parent's work data to get updated ai_summary from DB
             if (work.onAnalysisComplete) {
                 work.onAnalysisComplete();
             }
@@ -73,6 +163,12 @@ const WorkDetailView = ({ work, onBack, user }) => {
     };
 
     const handlePlayToggle = () => {
+        if (!work.music_url) {
+            setShowToast(true);
+            setTimeout(() => setShowToast(false), 3000);
+            return;
+        }
+
         if (audioRef.current) {
             if (isPlaying) {
                 audioRef.current.pause();
@@ -83,8 +179,51 @@ const WorkDetailView = ({ work, onBack, user }) => {
         }
     };
 
+    // Debug: Check if style1 exists in work object
+    console.log('Work object:', {
+        id: work.id,
+        title: work.title,
+        genre: work.genre,
+        style: work.style,
+        style1: work.style1,
+        all_keys: Object.keys(work)
+    });
+
     return (
-        <div className="bg-white min-h-screen pb-10">
+        <div className="bg-white min-h-screen pb-6">
+            {/* Audio Element moved to root level for stability */}
+            {/* Use work.music_url directly. React handles src updates. */}
+            {/* Hidden Audio Element (Controlled by Header Button) */}
+            <audio ref={audioRef} src={work.music_url || ''} loop={false} onEnded={() => setIsPlaying(false)} className="hidden" />
+
+            <AnimatePresence>
+                {showToast && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20, x: "-50%" }}
+                        animate={{ opacity: 1, y: 0, x: "-50%" }}
+                        exit={{ opacity: 0, y: -20, x: "-50%" }}
+                        className="fixed top-28 left-1/2 z-[100] bg-black/80 text-white px-8 py-4 rounded-full text-sm font-bold shadow-2xl backdrop-blur-md flex items-center gap-3 whitespace-nowrap border border-white/10"
+                    >
+                        <Sparkles size={18} className="text-yellow-400 animate-pulse" />
+                        AI가 노래를 생성 중입니다!
+                    </motion.div>
+                )}
+                {/* Analysis Error Toast */}
+                {analysisError && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20, x: "-50%" }}
+                        animate={{ opacity: 1, y: 0, x: "-50%" }}
+                        exit={{ opacity: 0, y: -20, x: "-50%" }}
+                        className="fixed top-28 left-1/2 z-[100] bg-red-500/90 text-white px-6 py-3.5 rounded-full text-sm font-bold shadow-2xl backdrop-blur-md flex items-center gap-3 whitespace-nowrap border border-white/10"
+                        onClick={() => setAnalysisError(null)}
+                    >
+                        <svg className="w-5 h-5 text-white animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {analysisError}
+                    </motion.div>
+                )}
+            </AnimatePresence>
             {/* Header Image */}
             <div className="relative w-full h-[50vh] bg-gray-900">
                 <img
@@ -104,18 +243,18 @@ const WorkDetailView = ({ work, onBack, user }) => {
 
             {/* Content Container */}
             <div className="px-5 -mt-8 relative z-10">
-                <div className="bg-white rounded-t-3xl p-6 shadow-lg min-h-[50vh]">
+                <div className="bg-white rounded-t-3xl p-6 shadow-lg min-h-[30vh]">
                     {/* Title & Meta */}
                     <div className="mb-6">
                         <div className="flex justify-between items-start mb-2">
                             <div>
-                                <div className="flex gap-2 mb-2">
-                                    <span className="inline-block px-3 py-1 bg-black text-white text-xs font-bold rounded-full">
+                                <div className="flex gap-2 mb-2 flex-wrap items-center">
+                                    <span className="flex items-center justify-center h-6 px-3 bg-black text-white text-xs font-bold rounded-full">
                                         {work.genre || '그림'}
                                     </span>
-                                    {work.style && (
-                                        <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full border border-gray-200">
-                                            {work.style}
+                                    {(work.style1 || work.style) && (
+                                        <span className="flex items-center justify-center h-6 px-3 text-white text-xs font-bold rounded-full shadow-sm" style={{ backgroundColor: 'rgb(35, 84, 157)' }}>
+                                            {work.style1 || work.style}
                                         </span>
                                     )}
                                 </div>
@@ -123,9 +262,21 @@ const WorkDetailView = ({ work, onBack, user }) => {
                                     {work.title}
                                 </h1>
                             </div>
-                            <div className="flex gap-2">
-                                <button className="p-2 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100">
-                                    <Share2 size={20} />
+                            <div className="flex gap-2 items-center">
+                                <button
+                                    onClick={handlePlayToggle}
+                                    className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-all duration-300 relative overflow-hidden
+                                        ${isPlaying
+                                            ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white scale-110 shadow-lg ring-2 ring-purple-200'
+                                            : 'bg-white text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 border border-gray-100'}`}
+                                >
+                                    {isPlaying && (
+                                        <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full" />
+                                    )}
+                                    {isPlaying ? <Music size={16} className="relative z-10 animate-bounce" /> : <Music size={16} />}
+                                </button>
+                                <button className="w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-all duration-300 bg-white text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 border border-gray-100">
+                                    <Share2 size={18} />
                                 </button>
                             </div>
                         </div>
@@ -161,23 +312,7 @@ const WorkDetailView = ({ work, onBack, user }) => {
                             </div>
                         )}
 
-                        {/* Audio Player if music_url exists */}
-                        {work.music_url && (
-                            <div className="mb-6 p-4 bg-gray-50 rounded-2xl flex items-center gap-3 border border-gray-100">
-                                <button
-                                    onClick={handlePlayToggle}
-                                    className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center flex-shrink-0 hover:bg-gray-800 transition-colors"
-                                >
-                                    {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-                                </button>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold truncate">AI Generated Music</p>
-                                    <p className="text-xs text-gray-500 truncate">Tap to listen to the analysis</p>
-                                </div>
-                                <Music size={20} className="text-gray-300" />
-                                <audio ref={audioRef} src={work.music_url || ''} onEnded={() => setIsPlaying(false)} className="hidden" />
-                            </div>
-                        )}
+
 
                         {/* Rating */}
                         <div className="flex gap-1 mb-6">
@@ -197,8 +332,9 @@ const WorkDetailView = ({ work, onBack, user }) => {
                     </div>
 
                     {/* AI Analysis Button or Summary Display */}
-                    {(work.ai_summary || analysisData?.ai_summary) ? (
-                        /* AI Summary Display - Same position as button */
+                    {/* Check is_analyzed flag: Show result ONLY if revealed OR just analyzed locally */}
+                    {((work.is_analyzed || analysisData?.is_analyzed) && (work.ai_summary || analysisData?.ai_summary) && !isAnalyzing && (work.ai_summary !== "AI가 그림을 분석 중이에요!" && analysisData?.ai_summary !== "AI가 그림을 분석 중이에요!")) ? (
+                        /* AI Summary Display - Actual Result */
                         <div className="w-full py-4 px-5 mb-4 rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border-2 border-indigo-200 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="flex items-start gap-3">
                                 <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center shadow-md">
@@ -216,7 +352,7 @@ const WorkDetailView = ({ work, onBack, user }) => {
                             </div>
                         </div>
                     ) : (
-                        /* AI Analysis Button */
+                        /* AI Analysis Button (Loading or Initial) */
                         <button
                             onClick={handleAnalyze}
                             disabled={isAnalyzing}
@@ -245,46 +381,13 @@ const WorkDetailView = ({ work, onBack, user }) => {
                         </button>
                     )}
 
-                    {/* Error Message */}
-                    {analysisError && (
-                        <div className="mb-4 p-4 sm:p-5 bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300">
-                            <div className="flex items-start gap-3">
-                                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-full flex items-center justify-center">
-                                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="text-sm sm:text-base font-bold text-red-900 mb-1">분석 실패</h4>
-                                    <p className="text-xs sm:text-sm text-red-700 leading-relaxed break-words">
-                                        {analysisError}
-                                    </p>
-                                    <button
-                                        onClick={() => setAnalysisError(null)}
-                                        className="mt-3 text-xs sm:text-sm font-medium text-red-600 hover:text-red-800 underline"
-                                    >
-                                        닫기
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+
 
                     {/* AI Analysis Results Visualizer */}
-                    {analysisData && (
+                    {analysisData && analysisData.style1 && (
                         <div className="mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Sparkles size={14} className="text-purple-500" />
-                                    AI Analysis Result
-                                </h3>
-                                <span className="px-3 py-1 bg-purple-100 text-purple-600 text-[10px] font-bold rounded-full">
-                                    {analysisData.genre || analysisData.ai_genre}
-                                </span>
-                            </div>
-
                             {/* Style Probability Charts */}
-                            <div className="space-y-4 mb-6">
+                            <div className="space-y-2">
                                 {[1, 2, 3, 4, 5].map(num => {
                                     const styleName = analysisData[`style${num}`];
                                     const score = analysisData[`score${num}`];
@@ -306,47 +409,6 @@ const WorkDetailView = ({ work, onBack, user }) => {
                                     );
                                 })}
                             </div>
-
-                            {/* AI Summary Section */}
-                            {(analysisData.ai_summary || work.ai_summary) && (
-                                <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-700">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <Sparkles size={16} className="text-blue-600" />
-                                        <h3 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">AI Summary</h3>
-                                    </div>
-                                    <div className="relative p-5 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 rounded-3xl border border-blue-100/50 shadow-sm overflow-hidden">
-                                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                                            <Sparkles size={40} className="text-blue-500" />
-                                        </div>
-                                        <p className="relative z-10 text-sm text-gray-800 leading-relaxed font-serif italic">
-                                            "{analysisData.ai_summary || work.ai_summary}"
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Music Player Placeholder / Integration */}
-                            {(analysisData.music_url || work.music_url) && (
-                                <div className="p-4 bg-white rounded-xl border border-purple-100 flex items-center gap-3">
-                                    <button
-                                        onClick={handlePlayToggle}
-                                        className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center flex-shrink-0 hover:bg-purple-700 transition-colors shadow-premium"
-                                    >
-                                        {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-                                    </button>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-bold text-purple-900 truncate">분석 기반 추천 음악</p>
-                                        <p className="text-[10px] text-purple-400 truncate">이 작품의 분위기와 어울리는 AI 생성 곡</p>
-                                    </div>
-                                    <Music size={18} className="text-purple-200" />
-                                    <audio
-                                        ref={audioRef}
-                                        src={analysisData.music_url || work.music_url}
-                                        onEnded={() => setIsPlaying(false)}
-                                        className="hidden"
-                                    />
-                                </div>
-                            )}
                         </div>
                     )}
 
@@ -354,16 +416,19 @@ const WorkDetailView = ({ work, onBack, user }) => {
                     <div className="space-y-6">
                         <div>
                             <h3 className="text-lg font-bold mb-3 border-b border-gray-100 pb-2">감상평</h3>
-                            <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
-                                {work.review}
-                            </p>
+                            <div className="bg-gray-50 rounded-xl px-4 py-3">
+                                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap w-full">
+                                    {work.review}
+                                </p>
+                            </div>
                         </div>
 
 
 
                         {/* Comments Section */}
-                        <div className="pt-8 mt-4 border-t border-gray-100">
-                            <h3 className="text-lg font-bold mb-4">댓글</h3>
+                        {/* Reduced spacing as requested */}
+                        <div className="pt-2 mt-2">
+                            <h3 className="text-lg font-bold mb-4 border-b border-gray-100 pb-2">댓글</h3>
 
                             {/* Comment Input */}
                             <div className="flex gap-2 mb-6">
@@ -401,8 +466,8 @@ const WorkDetailView = ({ work, onBack, user }) => {
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

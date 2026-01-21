@@ -105,12 +105,24 @@ function App() {
           }
         })(),
         style: post.style || '',
+        // AI Analysis Fields
+        style1: post.style1 || '',
+        style2: post.style2 || '',
+        style3: post.style3 || '',
+        style4: post.style4 || '',
+        style5: post.style5 || '',
+        score1: post.score1 || 0,
+        score2: post.score2 || 0,
+        score3: post.score3 || 0,
+        score4: post.score4 || 0,
+        score5: post.score5 || 0,
         ai_summary: post.ai_summary,
         music_url: post.music_url,
         user_id: post.user_id,
         nickname: post.nickname,
         like_count: post.like_count,
         is_liked: myLikes.includes(post.id), // Mark if liked
+        is_analyzed: post.is_analyzed, // sync is_analyzed
         created_at: post.created_at
       }));
       setWorks(mappedWorks);
@@ -348,10 +360,14 @@ function App() {
 
   const renderView = () => {
     if (selectedWork) {
+      // Find the latest version of the selected work from the works array
+      // This ensures we have the latest ai_summary, is_analyzed status, etc.
+      const freshWork = works.find(w => w.id === selectedWork.id) || selectedWork;
+
       return (
         <WorkDetailView
           work={{
-            ...selectedWork,
+            ...freshWork,
             onAnalysisComplete: refreshWorks
           }}
           user={user}

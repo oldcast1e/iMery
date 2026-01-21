@@ -119,7 +119,7 @@ app.post('/users/login', async (req, res) => {
 // 2. Posts
 app.get('/posts/', async (req, res) => {
     const posts = await db.all(`
-    SELECT Posts.*, Users.nickname,
+    SELECT Posts.*, Posts.is_analyzed, Users.nickname,
     (SELECT COUNT(*) FROM Likes WHERE post_id = Posts.id) as like_count
     FROM Posts 
     LEFT JOIN Users ON Posts.user_id = Users.id 
@@ -516,12 +516,47 @@ app.get('/users/:id/comments', async (req, res) => {
 // AI Analysis Proxy
 app.post('/posts/:id/analyze', async (req, res) => {
     const { id } = req.params;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 90000); // 90s timeout
 
     try {
-        const post = await db.get('SELECT image_url FROM Posts WHERE id = ?', [id]);
+        // Use SELECT * to avoid "Unknown column" errors if schema drift occurred
+        const post = await db.get('SELECT * FROM Posts WHERE id = ?', [id]);
         if (!post) return res.status(404).json({ detail: 'Post not found' });
+
+        // NEW LOGIC: If summary exists, just reveal it (set is_analyzed = 1) and return
+        if (post.ai_summary) {
+            console.log(`[AI] Analysis already exists for Post ${id}. Revealing result.`);
+            await db.run('UPDATE Posts SET is_analyzed = 1 WHERE id = ?', [id]);
+
+            // Fetch the full analysis result to return
+            let analysisData = {};
+            if (post.analysis_id) {
+                const results = await db.get('SELECT * FROM art_analysis WHERE id = ?', [post.analysis_id]);
+                if (results) {
+                    analysisData = {
+                        genre: results.genre,
+                        styles: [
+                            { name: results.style1, score: results.score1 },
+                            { name: results.style2, score: results.score2 },
+                            { name: results.style3, score: results.score3 },
+                            { name: results.style4, score: results.score4 },
+                            { name: results.style5, score: results.score5 },
+                        ],
+                        music_url: results.music_url
+                    };
+                }
+            }
+
+            return res.json({
+                message: '분석 결과 공개',
+                result: analysisData,
+                ai_summary: post.ai_summary,
+                analysis_id: post.analysis_id,
+                is_analyzed: true
+            });
+        }
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 90000); // 90s timeout
 
         console.log(`[AI] Analyzing image for Post ${id}: ${post.image_url}`);
 
@@ -561,10 +596,10 @@ app.post('/posts/:id/analyze', async (req, res) => {
 
         const aiSummary = `AI 분석 결과, 이 작품은 '${data.genre}' 장르로 분류되며, 가장 두드러지는 화풍은 '${data.styles[0]?.name}'(${Math.round(data.styles[0]?.score * 100)}%) 입니다. 이에 어울리는 음악이 생성되었습니다.`;
 
-        // Update Post
+        // Update Post (Set is_analyzed = 1)
         await db.run(`
             UPDATE Posts 
-            SET ai_summary = ?, music_url = ?, analysis_id = ?
+            SET ai_summary = ?, music_url = ?, analysis_id = ?, is_analyzed = 1
             WHERE id = ?
         `, [aiSummary, data.music_url, analysisResult.lastID, id]);
 
@@ -572,16 +607,21 @@ app.post('/posts/:id/analyze', async (req, res) => {
             message: '분석 완료',
             result: data,
             ai_summary: aiSummary,
-            analysis_id: analysisResult.lastID
+            analysis_id: analysisResult.lastID,
+            is_analyzed: true
         });
 
     } catch (error) {
-        clearTimeout(timeout);
+        // clearTimeout(timeout); // Already cleared or undefined if failed before
         console.error('[AI Error]:', error.message);
         if (error.name === 'AbortError') {
             res.status(504).json({ detail: 'AI 분석 시간이 너무 오래 걸립니다. (Timeout)' });
         } else {
-            res.status(500).json({ detail: 'AI 분석 중 오류가 발생했습니다. RunPod 서버 상태를 확인해주세요.' });
+            // Return actual error for debugging (DB errors, etc.)
+            res.status(500).json({
+                detail: `AI 분석 중 오류가 발생했습니다: ${error.message}`,
+                error: error.message
+            });
         }
     }
 });

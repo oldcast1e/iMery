@@ -266,10 +266,12 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
                             <label className="text-[11px] font-bold text-gray-400 tracking-widest uppercase">Tags</label>
                             <span className="text-[10px] text-gray-300 font-medium italic">태그를 선택하여 작품에 생동감을 불어넣으세요 (최대 5개)</span>
                         </div>
-                        <TagSelector
-                            selectedTags={formData.tags}
-                            onTagsChange={(tags) => setFormData({ ...formData, tags })}
-                        />
+                        <div className="mt-2">{/* Reduced from default spacing */}
+                            <TagSelector
+                                selectedTags={formData.tags}
+                                onTagsChange={(tags) => setFormData({ ...formData, tags })}
+                            />
+                        </div>
                     </div>
 
                     {/* 4. Rating */}

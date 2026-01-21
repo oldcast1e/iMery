@@ -1,17 +1,89 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Calendar as CalendarIcon, Image as ImageIcon, UserMinus, Search } from 'lucide-react';
+import { Users, Calendar as CalendarIcon, Image as ImageIcon, UserMinus, Search, Music, Share2, Sparkles, Pause } from 'lucide-react';
 import PostCard from '../entities/PostCard';
 import api from '../api/client';
 
 export default function ArchiveView({ works, user, onLikeToggle, bookmarkedIds, onBookmarkToggle, onDateClick }) {
     const [activeTab, setActiveTab] = useState('feed'); // feed, calendar, friends
+    const audioRef = useRef(null);
+    const [currentMusic, setCurrentMusic] = useState(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+
+    // Auto-play music logic
+    useEffect(() => {
+        // Find latest work with music_url
+        const workWithMusic = works.find(w => w.music_url && w.music_url.trim() !== "");
+        if (workWithMusic) {
+            setCurrentMusic(workWithMusic);
+        }
+    }, [works]);
+
+    useEffect(() => {
+        if (currentMusic && audioRef.current) {
+            audioRef.current.volume = 0.5;
+            const playPromise = audioRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    setIsPlaying(true);
+                }).catch(error => {
+                    console.log("Auto-play was prevented:", error);
+                    setIsPlaying(false);
+                });
+            }
+
+            // Loop approx 10s
+            const loopInterval = setInterval(() => {
+                if (audioRef.current.currentTime >= 10) {
+                    audioRef.current.currentTime = 0;
+                }
+            }, 100);
+
+            return () => clearInterval(loopInterval);
+        }
+    }, [currentMusic]);
+
+    const handleMusicToggle = () => {
+        if (!currentMusic?.music_url) {
+            setShowToast(true);
+            setTimeout(() => setShowToast(false), 3000);
+            return;
+        }
+
+        if (isPlaying) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play();
+        }
+        setIsPlaying(!isPlaying);
+    };
 
     return (
         <div className="min-h-screen bg-cream-50 pb-20">
-            {/* Top Tabs */}
-            <div className="sticky top-16 z-30 glass border-b border-white/20 p-2 flex justify-center gap-2">
-                <div className="bg-gray-100/50 p-1 rounded-full flex gap-1">
+            {/* Background Music */}
+            <audio ref={audioRef} src={currentMusic?.music_url} loop />
+
+            {/* Toast for Music Generation */}
+            <AnimatePresence>
+                {showToast && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20, x: "-50%" }}
+                        animate={{ opacity: 1, y: 0, x: "-50%" }}
+                        exit={{ opacity: 0, y: -20, x: "-50%" }}
+                        className="fixed top-28 left-1/2 z-[100] bg-black/80 text-white px-8 py-4 rounded-full text-sm font-bold shadow-2xl backdrop-blur-md flex items-center gap-3 whitespace-nowrap border border-white/10"
+                    >
+                        <Sparkles size={18} className="text-yellow-400 animate-pulse" />
+                        AI가 노래를 생성 중입니다!
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Top Tabs & Actions */}
+            <div className="sticky top-16 z-30 glass border-b border-white/20 p-2 flex justify-between items-center px-4">
+                <div className="w-0 md:w-20" /> {/* Spacer for centering tabs, hidden on mobile */}
+
+                <div className="bg-gray-100/50 p-1 rounded-full flex gap-1 transform scale-90 md:scale-100 transition-transform origin-center">
                     <TabButton
                         active={activeTab === 'feed'}
                         onClick={() => setActiveTab('feed')}
@@ -30,6 +102,22 @@ export default function ArchiveView({ works, user, onLikeToggle, bookmarkedIds, 
                         icon={<Users size={16} />}
                         label="친구"
                     />
+                </div>
+
+                {/* Music & Share Actions */}
+                <div className="flex items-center gap-2 w-auto md:w-20 justify-end">
+                    <button
+                        onClick={handleMusicToggle}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-all duration-300
+                            ${isPlaying
+                                ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white scale-110 shadow-lg ring-2 ring-purple-200'
+                                : 'bg-white text-gray-400 hover:text-indigo-500 hover:bg-indigo-50'}`}
+                    >
+                        {isPlaying ? <Music size={16} className="animate-pulse" /> : <Music size={16} />}
+                    </button>
+                    <button className="w-9 h-9 rounded-full bg-white text-gray-400 flex items-center justify-center shadow-sm hover:text-black transition-colors hover:bg-gray-50 border border-transparent hover:border-gray-200">
+                        <Share2 size={18} />
+                    </button>
                 </div>
             </div>
 
@@ -61,7 +149,7 @@ function TabButton({ active, onClick, icon, label }) {
     return (
         <button
             onClick={onClick}
-            className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all duration-400 ${active
+            className={`flex items-center gap-2 px-4 md:px-6 py-2 rounded-full transition-all duration-400 whitespace-nowrap ${active
                 ? 'bg-white text-black shadow-premium scale-100'
                 : 'text-gray-400 hover:text-gray-600'
                 }`}
