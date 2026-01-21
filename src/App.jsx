@@ -4,7 +4,6 @@ import BottomNav from './widgets/BottomNav';
 import UploadModal from './features/UploadModal';
 import ReviewForm from './features/ReviewForm';
 import NotificationPanel from './widgets/NotificationPanel';
-import ScrollToTopButton from './shared/ui/ScrollToTopButton';
 import DeleteConfirmDialog from './shared/ui/DeleteConfirmDialog';
 import CommunityView from './pages/CommunityView';
 import ArchiveView from './pages/ArchiveView';
@@ -527,7 +526,7 @@ function App() {
         </div>
       )}
 
-      <ScrollToTopButton />
+      )}
     </div>
   );
 }

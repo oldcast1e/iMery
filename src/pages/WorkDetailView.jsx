@@ -12,6 +12,7 @@ const WorkDetailView = ({ work, onBack, user }) => {
     const [analysisError, setAnalysisError] = useState(null);
     const [showToast, setShowToast] = useState(false);
     const audioRef = useRef(null);
+    const loopTimerRef = useRef(null); // Ref for loop interval
 
     // 1. Auto-Reveal Analysis State
     useEffect(() => {
@@ -32,22 +33,45 @@ const WorkDetailView = ({ work, onBack, user }) => {
         }
     }, [work.id, work.is_analyzed, work.ai_summary]);
 
-    // 2. Auto-Play Music (Only on mount/Work change)
+    // 2. Auto-Play Music & Scroll to Top (Only on mount/Work change)
     useEffect(() => {
+        // Force scroll to top when entering this view
+        window.scrollTo(0, 0);
+
         loadComments();
 
         if (work.music_url) {
-            const timer = setTimeout(() => {
-                // Ensure we don't interrupt if already playing
-                if (audioRef.current && audioRef.current.paused) {
-                    audioRef.current.play()
-                        .then(() => setIsPlaying(true))
-                        .catch(e => console.log("Autoplay blocked:", e));
-                }
-            }, 800);
-            return () => clearTimeout(timer);
+            // Unconditional Autoplay (No delay, immediate attempt)
+            if (audioRef.current) {
+                audioRef.current.play()
+                    .then(() => setIsPlaying(true))
+                    .catch(e => {
+                        console.log("Autoplay blocked (will retry on interaction):", e);
+                        // Optional: Show "Click to play" toast if blocked?
+                        // For now, adhere to "Unconditional" intent by trying.
+                    });
+            }
         }
-    }, [work.id]); // Run ONLY when work ID changes
+    }, [work.id, work.music_url]); // Trigger if work ID OR music URL changes
+
+    // Cleanup loop timer on unmount
+    useEffect(() => {
+        return () => {
+            if (loopTimerRef.current) clearTimeout(loopTimerRef.current);
+        };
+    }, []);
+
+    const handleAudioEnded = () => {
+        setIsPlaying(false);
+        // Loop after 1 second delay (1000ms)
+        loopTimerRef.current = setTimeout(() => {
+            if (audioRef.current) {
+                audioRef.current.play()
+                    .then(() => setIsPlaying(true))
+                    .catch(e => console.log("Loop replay blocked:", e));
+            }
+        }, 1000);
+    };
 
     const handleAnalyze = async () => {
         if (isAnalyzing) return;
@@ -192,9 +216,15 @@ const WorkDetailView = ({ work, onBack, user }) => {
     return (
         <div className="bg-white min-h-screen pb-6">
             {/* Audio Element moved to root level for stability */}
-            {/* Use work.music_url directly. React handles src updates. */}
-            {/* Hidden Audio Element (Controlled by Header Button) */}
-            <audio ref={audioRef} src={work.music_url || ''} loop={false} onEnded={() => setIsPlaying(false)} className="hidden" />
+            {/* Added autoPlay attribute as fallback */}
+            <audio
+                ref={audioRef}
+                src={work.music_url || ''}
+                autoPlay
+                loop={false}
+                onEnded={handleAudioEnded}
+                className="hidden"
+            />
 
             <AnimatePresence>
                 {showToast && (
