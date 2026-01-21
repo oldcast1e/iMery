@@ -44,17 +44,11 @@ export default function PostCard({ work, onClick, onTagClick, onEditClick, onDel
                         className="w-full h-full object-cover transition-transform duration-700" // REMOVED group-hover:scale-110 per request
                     />
 
-                    {/* Genre Tag Badge */}
+                    {/* Genre Badge */}
                     {work.genre && (
                         <div className="absolute top-4 right-4 z-10">
-                            <div
-                                className="bg-black text-white px-3 py-1 shadow-premium"
-                                style={{
-                                    clipPath: 'polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%)',
-                                    paddingRight: '12px'
-                                }}
-                            >
-                                <span className="text-[10px] font-bold tracking-tight uppercase">{work.genre}</span>
+                            <div className="px-3 py-1.5 glass rounded-full border border-white/40 shadow-premium">
+                                <span className="text-[10px] font-bold text-black tracking-tight">{work.genre}</span>
                             </div>
                         </div>
                     )}

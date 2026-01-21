@@ -7,9 +7,9 @@ const HighlightCarousel = ({ works = [], onWorkClick, onMoreClick }) => {
     return (
         <section className="mb-6">
             {/* Section Header */}
-            <div className="flex items-baseline gap-2 mb-4 px-4 font-serif">
+            <div className="flex items-baseline gap-2 mb-4 px-4">
                 <h2 className="text-2xl font-bold">저장된 작품</h2>
-                <span className="text-sm text-gray-500 font-sans">목록</span>
+                <span className="text-sm text-gray-500">목록</span>
             </div>
 
             {/* Carousel */}
@@ -28,25 +28,20 @@ const HighlightCarousel = ({ works = [], onWorkClick, onMoreClick }) => {
                                 className="w-full h-full object-cover"
                             />
 
-                            {/* [UI CHANGE] Tightened spacing and Butler font application */}
-                            <div className="absolute bottom-1.5 left-1.5 right-1.5">
-                                {/* [UI CHANGE] Ultra-tight vertical padding (py-0.5) to make the background stick strictly to the text */}
-                                <div className="bg-white/60 backdrop-blur-md py-0.5 px-1.5 rounded-xl shadow-sm border border-white/20">
-                                    {/* [UI CHANGE] Tag Margin (mb-0.5) and Padding (px-0.5 pt-0 pb-0.5) for max tightness */}
+                            {/* Text Overlay with Tight Rounded Background */}
+                            <div className="absolute bottom-2.5 left-2.5 right-2.5">
+                                <div className="bg-white/60 backdrop-blur-sm px-3 py-1 rounded-xl shadow-sm border border-white/20">
                                     <div
-                                        className="bg-black text-white inline-block px-0.5 pt-0 pb-0.5 mb-0.5 shadow-sm"
+                                        className="inline-block pl-1 pr-2 py-0.5 mb-1 text-[8px] font-black text-white uppercase tracking-wider relative"
                                         style={{
+                                            backgroundColor: '#23549D',
                                             clipPath: 'polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%)',
-                                            paddingRight: '8px'
+                                            paddingRight: '12px'
                                         }}
                                     >
-                                        {/* [UI CHANGE] font-serif now uses 'Butler' font as configured in tailwind.config.js */}
-                                        <p className="text-[7px] font-serif font-bold tracking-tight leading-none">{work.genre || '그림'}</p>
+                                        {work.genre || work.tag || '그림'}
                                     </div>
-                                    {/* [UI CHANGE] Reduced text size to 12px and tightened leading for a compact look */}
-                                    <p className="text-xs font-serif font-bold text-black truncate leading-none">
-                                        {work.title}
-                                    </p>
+                                    <p className="text-xs font-bold text-black truncate">{work.title}</p>
                                 </div>
                             </div>
                         </div>
