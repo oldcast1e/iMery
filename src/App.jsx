@@ -93,7 +93,7 @@ function App() {
         image_url: post.image_url, // PRESERVE IMAGE URL
         work_date: post.work_date,
         date: post.work_date || (post.created_at ? post.created_at.split('T')[0].replace(/-/g, '.') : new Date().toISOString().split('T')[0]),
-        genre: post.genre || post.category || '그림', // Sync Genre (with backward compatibility)
+        genre: post.genre || '그림', // Sync Genre
         rating: post.rating || 0,
         review: post.description || '',
         tags: (() => {
@@ -210,7 +210,7 @@ function App() {
       payload.append('ai_summary', editingWork?.ai_summary || '');
       payload.append('music_url', editingWork?.music_url || '');
       payload.append('work_date', workData.work_date);
-      payload.append('genre', workData.genre || workData.category);
+      payload.append('genre', workData.genre);
       payload.append('tags', JSON.stringify(workData.tags));
       payload.append('style', workData.style || '');
 

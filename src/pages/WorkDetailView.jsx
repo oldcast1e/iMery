@@ -71,7 +71,7 @@ const WorkDetailView = ({ work, onBack, user }) => {
                             <div>
                                 <div className="flex gap-2 mb-2">
                                     <span className="inline-block px-3 py-1 bg-black text-white text-xs font-bold rounded-full">
-                                        {work.genre || work.category || '그림'}
+                                        {work.genre || '그림'}
                                     </span>
                                     {work.style && (
                                         <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full border border-gray-200">

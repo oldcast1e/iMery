@@ -35,7 +35,7 @@ export default function WorkCard({ work, onPress, onLike }) {
                 <View className="flex-row justify-between items-center mt-2">
                     <View className="flex-row items-center gap-2">
                         <Text className="text-xs text-gray-400">{work.date}</Text>
-                        <Text className="text-xs font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">{work.genre || work.category || '그림'}</Text>
+                        <Text className="text-xs font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">{work.genre || '그림'}</Text>
                     </View>
                     <View className="flex-row items-center">
                         <Text className="text-xs text-gray-500 mr-1">★ {work.rating}</Text>

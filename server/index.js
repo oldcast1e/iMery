@@ -121,8 +121,8 @@ app.get('/users/:id/likes', async (req, res) => {
 app.post('/posts/', upload.single('image'), async (req, res) => {
     // Supports both Multipart (with file) and JSON (base64 fallback or text only)
     // If file exists, use file path. If not, check body.image_url
-    const { user_id, title, artist_name, description, rating, ai_summary, music_url, work_date, genre, category, tags, style } = req.body;
-    const finalGenre = genre || category || '그림';
+    const { user_id, title, artist_name, description, rating, ai_summary, music_url, work_date, genre, tags, style } = req.body;
+    const finalGenre = genre || '그림';
     let image_url = req.body.image_url;
 
     if (req.file) {
@@ -180,11 +180,11 @@ app.get('/users/:id', async (req, res) => {
 
 app.put('/posts/:id', upload.single('image'), async (req, res) => {
     const { id } = req.params;
-    const { title, artist_name, description, rating, ai_summary, music_url, work_date, genre, category, tags, style } = req.body;
-    const finalGenre = genre || category || '그림';
+    const { title, artist_name, description, rating, ai_summary, music_url, work_date, genre, tags, style } = req.body;
+    const finalGenre = genre || '그림';
 
     console.log('Updating Post:', id);
-    console.log('Category:', category);
+    console.log('Genre:', finalGenre);
     console.log('Date:', work_date);
 
     let image_url = req.body.image_url;

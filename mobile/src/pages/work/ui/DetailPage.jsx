@@ -102,7 +102,7 @@ export default function DetailPage() {
                     </View>
 
                     <View className="flex-row items-center bg-gray-50 px-3 py-1 rounded-full">
-                        <Text className="text-gray-600 font-bold text-xs">{work.genre || work.category || '그림'}</Text>
+                        <Text className="text-gray-600 font-bold text-xs">{work.genre || '그림'}</Text>
                     </View>
                     <View className="flex-row items-center bg-gray-50 px-3 py-1 rounded-full">
                         <Calendar size={14} color="gray" />

@@ -162,10 +162,7 @@ export const initDb = async () => {
 
   // Posts: add work_date, genre, style, tags
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN work_date VARCHAR(50)"); } catch (e) { }
-  try { await pool.execute("ALTER TABLE Posts RENAME COLUMN category TO genre"); } catch (e) {
-    // If rename fails, try adding genre if it doesn't exist
-    try { await pool.execute("ALTER TABLE Posts ADD COLUMN genre VARCHAR(100)"); } catch (e2) { }
-  }
+  try { await pool.execute("ALTER TABLE Posts ADD COLUMN genre VARCHAR(100)"); } catch (e) { }
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN style VARCHAR(50)"); } catch (e) { }
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN tags TEXT"); } catch (e) { }
 

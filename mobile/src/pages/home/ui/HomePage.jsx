@@ -23,7 +23,7 @@ export default function HomePage() {
                 ...post,
                 image_url: post.image_url,
                 artist: post.artist_name || 'Unknown',
-                genre: post.genre || post.category || '그림', // Sync Genre
+                genre: post.genre || '그림', // Sync Genre
                 date: post.work_date || post.created_at?.split('T')[0],
                 review: post.description,
                 is_liked: myLikes.includes(post.id)

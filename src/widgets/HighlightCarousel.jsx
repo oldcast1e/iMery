@@ -31,7 +31,7 @@ const HighlightCarousel = ({ works = [], onWorkClick, onMoreClick }) => {
                             {/* Text Overlay with Tight Rounded Background */}
                             <div className="absolute bottom-2.5 left-2.5 right-2.5">
                                 <div className="bg-white/60 backdrop-blur-sm px-3 py-0.5 rounded-xl shadow-sm border border-white/20">
-                                    <p className="text-[9px] font-bold text-gray-500 tracking-tight opacity-80">[{work.genre || work.category || work.tag || '그림'}]</p>
+                                    <p className="text-[9px] font-bold text-gray-500 tracking-tight opacity-80">[{work.genre || work.tag || '그림'}]</p>
                                     <p className="text-xs font-bold text-black truncate">{work.title}</p>
                                 </div>
                             </div>
