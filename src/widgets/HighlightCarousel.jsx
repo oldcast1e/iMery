@@ -28,19 +28,23 @@ const HighlightCarousel = ({ works = [], onWorkClick, onMoreClick }) => {
                                 className="w-full h-full object-cover"
                             />
 
-                            {/* Text Overlay with Tag-shaped Genre Badge */}
+                            {/* Text Overlay: Refined aesthetic with unified spacing and emotional (serif) typography */}
                             <div className="absolute bottom-2 left-2 right-2">
-                                <div className="bg-white/85 backdrop-blur-sm p-2 rounded-xl shadow-sm border border-white/20">
+                                <div className="bg-white/60 backdrop-blur-md p-2.5 rounded-xl shadow-sm border border-white/20">
+                                    {/* Genre Tag: Pointer-shaped badge using clip-path */}
                                     <div
-                                        className="bg-black text-white inline-block px-1.5 py-0.5 mb-1 shadow-sm"
+                                        className="bg-black text-white inline-block px-1 py-0.5 mb-2 shadow-sm"
                                         style={{
                                             clipPath: 'polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%)',
-                                            paddingRight: '6px'
+                                            paddingRight: '8px' // Space for the arrow tip
                                         }}
                                     >
                                         <p className="text-[7px] font-serif font-bold tracking-tight">{work.genre || '그림'}</p>
                                     </div>
-                                    <p className="text-[13px] font-serif font-bold text-black truncate leading-tight">{work.title}</p>
+                                    {/* Work Title: Using serif font for an artistic and emotional feel */}
+                                    <p className="text-[13px] font-serif font-bold text-black truncate leading-tight">
+                                        {work.title}
+                                    </p>
                                 </div>
                             </div>
                         </div>
