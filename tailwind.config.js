@@ -21,7 +21,7 @@ export default {
         }
       },
       fontFamily: {
-        serif: ['Playfair Display', 'Georgia', 'serif'],
+        serif: ['Butler', 'Playfair Display', 'Georgia', 'serif'],
         sans: ['Outfit', 'Inter', 'sans-serif'],
       },
       boxShadow: {

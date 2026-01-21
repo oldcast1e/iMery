@@ -28,21 +28,22 @@ const HighlightCarousel = ({ works = [], onWorkClick, onMoreClick }) => {
                                 className="w-full h-full object-cover"
                             />
 
-                            {/* Text Overlay: Refined aesthetic with unified spacing and emotional (serif) typography */}
-                            <div className="absolute bottom-2 left-2 right-2">
-                                <div className="bg-white/60 backdrop-blur-md p-2.5 rounded-xl shadow-sm border border-white/20">
-                                    {/* Genre Tag: Pointer-shaped badge using clip-path */}
+                            {/* [UI CHANGE] Tightened spacing and Butler font application */}
+                            <div className="absolute bottom-1.5 left-1.5 right-1.5">
+                                <div className="bg-white/60 backdrop-blur-md p-1.5 rounded-xl shadow-sm border border-white/20">
+                                    {/* [UI CHANGE] Reduced mb-2 to mb-1 for tighter spacing between tag and title */}
                                     <div
-                                        className="bg-black text-white inline-block px-1 py-0.5 mb-2 shadow-sm"
+                                        className="bg-black text-white inline-block px-1 py-0.5 mb-1 shadow-sm"
                                         style={{
                                             clipPath: 'polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%)',
-                                            paddingRight: '8px' // Space for the arrow tip
+                                            paddingRight: '8px'
                                         }}
                                     >
+                                        {/* [UI CHANGE] font-serif now uses 'Butler' font as configured in tailwind.config.js */}
                                         <p className="text-[7px] font-serif font-bold tracking-tight">{work.genre || '그림'}</p>
                                     </div>
-                                    {/* Work Title: Using serif font for an artistic and emotional feel */}
-                                    <p className="text-[13px] font-serif font-bold text-black truncate leading-tight">
+                                    {/* [UI CHANGE] Reduced text size to 12px and tightened leading for a compact look */}
+                                    <p className="text-xs font-serif font-bold text-black truncate leading-none">
                                         {work.title}
                                     </p>
                                 </div>

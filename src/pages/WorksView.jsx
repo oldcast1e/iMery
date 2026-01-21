@@ -63,7 +63,7 @@ const WorksView = ({ works, folders, setFolders, onWorkClick, onEditClick, onDel
                                                 const label = typeof tag === 'object' ? tag.label : tag;
                                                 const id = typeof tag === 'object' ? tag.id : `old-${idx}`;
                                                 return (
-                                                    <span key={id} className="px-1.5 py-0.5 bg-white/60 text-gray-600 rounded-[4px] text-[8px] font-bold border border-white/40">
+                                                    <span key={id} className="px-0.5 py-0.5 bg-white/60 text-gray-600 rounded-[4px] text-[4px] font-bold border border-white/40">
                                                         {label}
                                                     </span>
                                                 );
