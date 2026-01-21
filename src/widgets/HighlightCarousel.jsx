@@ -28,25 +28,23 @@ const HighlightCarousel = ({ works = [], onWorkClick, onMoreClick }) => {
                                 className="w-full h-full object-cover"
                             />
 
-                            {/* 
-                                [UI CHANGE] 
-                                - Tighter background block by reducing outer position (bottom-1 left-1 right-1)
-                                - Internal spacing can be controlled via 'p-1' (padding) and 'px-1 py-0.5' for the tag.
-                             */}
-                            <div className="absolute bottom-1 left-1 right-1 text-center">
-                                <div className="bg-white/60 backdrop-blur-md p-1 rounded-xl shadow-sm border border-white/20">
-                                    {/* Tag Margin (mb-0.5) and Padding (px-1 py-0.5) control the tag's tightness */}
+                            {/* [UI CHANGE] Tightened spacing and Butler font application */}
+                            <div className="absolute bottom-1.5 left-1.5 right-1.5">
+                                {/* [UI CHANGE] Reduced top padding (pt-0.5) to remove spacing above the tag */}
+                                <div className="bg-white/60 backdrop-blur-md pt-0.5 pb-1.5 px-1.5 rounded-xl shadow-sm border border-white/20">
+                                    {/* [UI CHANGE] Removed top padding (pt-0) and reduced bottom margin (mb-0.5) */}
                                     <div
-                                        className="bg-black text-white inline-block px-1 py-0.5 mb-0.5 shadow-sm"
+                                        className="bg-black text-white inline-block px-0.5 pt-0 pb-0.5 mb-0.5 shadow-sm"
                                         style={{
                                             clipPath: 'polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%)',
                                             paddingRight: '8px'
                                         }}
                                     >
-                                        <p className="text-[7px] font-serif font-bold tracking-tight">{work.genre || '그림'}</p>
+                                        {/* [UI CHANGE] font-serif now uses 'Butler' font as configured in tailwind.config.js */}
+                                        <p className="text-[7px] font-serif font-bold tracking-tight leading-none">{work.genre || '그림'}</p>
                                     </div>
-                                    {/* 'leading-none' and 'text-xs' determine the title's vertical tightness */}
-                                    <p className="text-[11px] font-serif font-bold text-black truncate leading-none">
+                                    {/* [UI CHANGE] Reduced text size to 12px and tightened leading for a compact look */}
+                                    <p className="text-xs font-serif font-bold text-black truncate leading-none">
                                         {work.title}
                                     </p>
                                 </div>
