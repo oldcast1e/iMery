@@ -1,4 +1,4 @@
-# iMery Setup & Execution Guide (v1.3)
+# iMery Setup & Execution Guide (v1.5)
 
 이 문서는 iMery 프로젝트의 설치, 설정 및 실행 방법을 상세히 설명합니다.
 
