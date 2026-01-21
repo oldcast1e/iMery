@@ -30,86 +30,79 @@ api.interceptors.request.use(
 );
 
 export const auth = {
-    signup: async (email, password, nickname) => {
-        const response = await api.post('/api/auth/signup', { email, password, nickname });
+    signup: async (username, password, nickname) => {
+        const response = await api.post('/users/signup', { username, password, nickname });
         return response.data;
     },
-    login: async (email, password) => {
-        const response = await api.post('/api/auth/login', { email, password });
-        await AsyncStorage.setItem('token', response.data.token);
-        await AsyncStorage.setItem('user', JSON.stringify(response.data.user)); // Store basic user info
-        return response.data.user;
+    login: async (username, password) => {
+        const response = await api.post('/users/login', { username, password });
+        const { token, user_id, nickname } = response.data;
+        const user = { user_id, nickname };
+        await AsyncStorage.setItem('token', token);
+        await AsyncStorage.setItem('user', JSON.stringify(user));
+        return { ...user, token };
     },
     logout: async () => {
         await AsyncStorage.removeItem('token');
         await AsyncStorage.removeItem('user');
     },
-    getMe: async () => { // Verify token and get user data
-        const response = await api.get('/api/auth/me');
+    getMe: async () => {
+        const response = await api.get('/users/me'); // Assuming this exists or will be added
         return response.data;
     }
 };
 
 export const posts = {
     getAll: async () => {
-        const response = await api.get('/api/posts');
-        return response.data;
+        const response = await api.get('/posts/');
+        return response.data.posts;
     },
     create: async (formData) => {
-        // For image upload, Content-Type must be multipart/form-data
-        // Axios usually handles this automatically if data is FormData, but explicit setting is safer or sometimes required.
-        const response = await api.post('/api/posts', formData, {
+        const response = await api.post('/posts/', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
         return response.data;
     },
     getDetail: async (id) => {
-        const response = await api.get(`/api/posts/${id}`);
+        const response = await api.get(`/posts/${id}`);
         return response.data;
     },
     delete: async (id) => {
-        const response = await api.delete(`/api/posts/${id}`);
+        const response = await api.delete(`/posts/${id}`);
         return response.data;
     }
 };
 
 export const social = {
     getFriends: async (userId) => {
-        const response = await api.get(`/api/friends/${userId}`);
-        return response.data;
-    },
-    getFriendRequests: async (userId) => { // Pending requests
-        // This endpoint might need to be created or filtered from getFriends
-        // For now, assuming getFriends returns all and we filter client side or backend handles it.
-        // Based on server/index.js: /api/friends/:userId returns all relationships
-        const response = await api.get(`/api/friends/${userId}`);
+        const response = await api.get(`/friends/${userId}`);
         return response.data;
     },
     requestFriend: async (requesterId, addresseeId) => {
-        const response = await api.post('/api/friends/request', { requester_id: requesterId, addressee_id: addresseeId });
+        const response = await api.post('/friends/request', { requester_id: requesterId, addressee_id: addresseeId });
         return response.data;
     },
-    respondFriend: async (id, status) => { // id is relationship ID
-        const response = await api.put(`/api/friends/respond/${id}`, { status });
+    respondFriend: async (id, status) => {
+        const response = await api.put('/friends/accept', { id }); // Align with server: accepts id only
         return response.data;
     }
 };
 
 export const interactions = {
     toggleLike: async (postId, userId) => {
-        const response = await api.post('/api/likes/toggle', { post_id: postId, user_id: userId });
+        const response = await api.post(`/posts/${postId}/likes`, { user_id: userId });
         return response.data;
     },
     getMyLikes: async (userId) => {
-        const response = await api.get(`/api/likes/${userId}`);
-        return response.data.map(like => like.post_id);
+        const response = await api.get(`/users/${userId}/likes`);
+        return response.data;
     },
     addComment: async (postId, userId, content) => {
-        const response = await api.post('/api/comments', { post_id: postId, user_id: userId, content });
+        const response = await api.post(`/posts/${postId}/comments`, { user_id: userId, content });
         return response.data;
     },
     getComments: async (postId) => {
-        const response = await api.get(`/api/comments/${postId}`);
+        const response = await api.get(`/posts/${postId}/comments`);
         return response.data;
     }
 };
