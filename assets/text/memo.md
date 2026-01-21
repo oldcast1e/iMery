@@ -227,10 +227,13 @@ test
 ### 3. 제작 연도 입력 기능 추가
 
 ### 4. 앱 아이콘 반영
-
+[x] 앱 아이콘 반영 완료
 ### 5. 이미지 업로드 기능
 
 ### 6. Column 변경
-- [x] Column 명칭 변경: `category` -> `genre` (동작 및 하위 호환성 유지)genre)로 변경
-- 기존 posts/category DB 정보를 참조하던 컴포넌트들을 모두 posts/genre로 변경.
-- 현재 앱의 기능, UI의 변경/삭제/축소는 없음
+[x] Column 명칭 변경: `category` -> `genre` (동작 및 하위 호환성 유지)genre로 변경
+[X] 기존 posts/category DB 정보를 참조하던 컴포넌트들을 모두 posts/genre로 변경.
+[x] 현재 앱의 기능, UI의 변경/삭제/축소는 없음
+
+### 7. 앱 시그니처 컬러
+- R: 35 / G:84 / B:157

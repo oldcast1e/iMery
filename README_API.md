@@ -179,6 +179,3 @@ Your task is to build a web application interface that connects to a live backen
 
 Please generate the complete Frontend code (HTML/CSS/JS single file OR React App structure).
 ```
-
-✅ **파일 생성**
-이 문서를 `API_SPEC.md` 라는 이름으로 저장해서 프로젝트에 포함시키면, 어떤 개발자나 AI도 즉시 작업을 시작할 수 있습니다.

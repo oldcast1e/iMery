@@ -65,9 +65,6 @@ const TagSelector = ({ selectedTags, onTagsChange }) => {
         <div className="space-y-2">
             {/* 1. Selected Tags (Premium Chips) */}
             <div className="flex flex-wrap gap-2 min-h-[44px] p-1 items-center">
-                {selectedTags.length === 0 && (
-                    <span className="text-[10px] text-gray-300 font-medium px-2 italic mb-1">태그를 선택하여 작품에 생동감을 불어넣으세요 (최대 5개)</span>
-                )}
                 {selectedTags.map((tag) => (
                     <div
                         key={tag.id}

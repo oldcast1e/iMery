@@ -100,6 +100,27 @@ const WorkDetailView = ({ work, onBack, user }) => {
                             </span>
                         </div>
 
+                        {/* Tags moved here */}
+                        {work.tags && work.tags.length > 0 && (
+                            <div className="mb-6 animate-fade-in">
+                                <div className="flex flex-wrap gap-2">
+                                    {work.tags.map((tag, idx) => {
+                                        const label = typeof tag === 'object' ? tag.label : tag;
+                                        const id = typeof tag === 'object' ? tag.id : `old-${idx}`;
+                                        return (
+                                            <span
+                                                key={id}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-600 rounded-xl text-xs font-bold border border-gray-100 shadow-sm"
+                                            >
+                                                <Tag size={12} className="text-gray-400" />
+                                                {label}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Audio Player if music_url exists */}
                         {work.music_url && (
                             <div className="mb-6 p-4 bg-gray-50 rounded-2xl flex items-center gap-3 border border-gray-100">
@@ -136,7 +157,7 @@ const WorkDetailView = ({ work, onBack, user }) => {
                     </div>
 
                     {/* AI Analysis Button Placeholder */}
-                    <button className="w-full py-4 mb-8 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity transform active:scale-95">
+                    <button className="w-full py-3 mb-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity transform active:scale-95">
                         <Sparkles size={20} className="animate-pulse" />
                         AI 분석 받아보기
                         <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full ml-1">Coming Soon</span>
@@ -163,26 +184,7 @@ const WorkDetailView = ({ work, onBack, user }) => {
                             </div>
                         )}
 
-                        {/* Tags */}
-                        {work.tags && work.tags.length > 0 && (
-                            <div className="pt-4 animate-fade-in">
-                                <div className="flex flex-wrap gap-2">
-                                    {work.tags.map((tag, idx) => {
-                                        const label = typeof tag === 'object' ? tag.label : tag;
-                                        const id = typeof tag === 'object' ? tag.id : `old-${idx}`;
-                                        return (
-                                            <span
-                                                key={id}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-600 rounded-xl text-xs font-bold border border-gray-100 shadow-sm"
-                                            >
-                                                <Tag size={12} className="text-gray-400" />
-                                                {label}
-                                            </span>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
+
 
                         {/* Comments Section */}
                         <div className="pt-8 mt-4 border-t border-gray-100">
