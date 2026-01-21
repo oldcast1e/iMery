@@ -96,7 +96,15 @@ function App() {
         category: post.category || '그림', // Sync Category
         rating: post.rating || 0,
         review: post.description || '',
-        tags: [],
+        tags: (() => {
+          try {
+            return post.tags ? JSON.parse(post.tags) : [];
+          } catch (e) {
+            console.warn("Failed to parse tags for post:", post.id, e);
+            return [];
+          }
+        })(),
+        style: post.style || '',
         ai_summary: post.ai_summary,
         music_url: post.music_url,
         user_id: post.user_id,
@@ -203,6 +211,8 @@ function App() {
       payload.append('music_url', editingWork?.music_url || '');
       payload.append('work_date', workData.work_date);
       payload.append('category', workData.category);
+      payload.append('tags', JSON.stringify(workData.tags));
+      payload.append('style', workData.style || '');
 
       if (currentFile) {
         payload.append('image', currentFile);
@@ -362,7 +372,7 @@ function App() {
     }
 
     const viewProps = {
-      works: filteredWorks,
+      works: activeView === 'works' || activeView === 'my' || activeView === 'archive' ? works : filteredWorks,
       selectedCategory: selectedCategory,
       onCategoryChange: setSelectedCategory,
       onUploadClick: handleUploadClick,

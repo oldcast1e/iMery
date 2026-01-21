@@ -59,7 +59,21 @@ export default function PostCard({ work, onClick, onTagClick, onEditClick, onDel
                     <div className="flex justify-between items-start mb-2">
                         <div>
                             <h3 className="text-lg font-bold">{work.title}</h3>
-                            <p className="text-sm text-gray-600">{work.artist}</p>
+                            <p className="text-sm text-gray-600 mb-2">{work.artist}</p>
+                            {/* Tags Display */}
+                            {work.tags && work.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                    {work.tags.map((tag, idx) => {
+                                        const label = typeof tag === 'object' ? tag.label : tag;
+                                        const id = typeof tag === 'object' ? tag.id : `old-${idx}`;
+                                        return (
+                                            <span key={id} className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold">
+                                                {label}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                         <div className="flex gap-0.5">
                             {[...Array(5)].map((_, i) => (

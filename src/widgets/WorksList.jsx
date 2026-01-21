@@ -78,13 +78,19 @@ const WorksList = ({
                                 </p>
 
                                 {/* Tags */}
-                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                    {work.category && (
-                                        <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full">
-                                            {work.category}
-                                        </span>
-                                    )}
-                                </div>
+                                {work.tags && work.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                        {work.tags.map((tag, idx) => {
+                                            const label = typeof tag === 'object' ? tag.label : tag;
+                                            const id = typeof tag === 'object' ? tag.id : `old-${idx}`;
+                                            return (
+                                                <span key={id} className="px-1.5 py-0.5 bg-gray-50 text-gray-400 rounded-[4px] text-[9px] font-bold border border-gray-100 transition-colors hover:border-gray-300">
+                                                    {label}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                )}
 
                                 {/* Stars */}
                                 <div className="flex gap-0.5 mt-2">
@@ -185,7 +191,21 @@ const WorksList = ({
                                 {layout !== 'large' && (
                                     <div className="absolute bottom-0 left-0 right-0 glass-overlay p-3">
                                         <p className="text-sm font-bold text-black truncate">{work.title}</p>
-                                        <p className="text-xs text-black/70 truncate">{work.artist}</p>
+                                        <p className="text-[10px] text-black/70 truncate">{work.artist}</p>
+                                        {/* Tags Display (Mini) */}
+                                        {work.tags && work.tags.length > 0 && Array.isArray(work.tags) && (
+                                            <div className="flex flex-wrap gap-1 mt-1 overflow-hidden h-4">
+                                                {work.tags.slice(0, 3).map((tag, idx) => {
+                                                    const label = typeof tag === 'object' ? tag.label : tag;
+                                                    const id = typeof tag === 'object' ? tag.id : `old-${idx}`;
+                                                    return (
+                                                        <span key={id} className="px-1 py-0 bg-white/40 text-gray-800 rounded-[3px] text-[7px] font-bold border border-white/20 whitespace-nowrap">
+                                                            {label}
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -196,7 +216,21 @@ const WorksList = ({
                                     <div className="flex justify-between items-start mb-2">
                                         <div>
                                             <h3 className="text-lg font-bold">{work.title}</h3>
-                                            <p className="text-sm text-gray-600">{work.artist}</p>
+                                            <p className="text-sm text-gray-600 mb-2">{work.artist}</p>
+                                            {/* Tags Display */}
+                                            {work.tags && work.tags.length > 0 && (
+                                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                                    {work.tags.map((tag, idx) => {
+                                                        const label = typeof tag === 'object' ? tag.label : tag;
+                                                        const id = typeof tag === 'object' ? tag.id : `old-${idx}`;
+                                                        return (
+                                                            <span key={id} className="px-2 py-0.5 bg-gray-50 text-gray-400 rounded text-[10px] font-bold border border-gray-100">
+                                                                {label}
+                                                            </span>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex gap-0.5">
                                             {[...Array(5)].map((_, i) => (

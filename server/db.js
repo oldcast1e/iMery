@@ -81,6 +81,8 @@ export const initDb = async () => {
             rating INT,
             work_date VARCHAR(50),
             category VARCHAR(50),
+            style VARCHAR(50),
+            tags TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(user_id) REFERENCES Users(id)
         )
@@ -161,6 +163,8 @@ export const initDb = async () => {
   // Posts: add work_date, category
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN work_date VARCHAR(50)"); } catch (e) { }
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN category VARCHAR(50)"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE Posts ADD COLUMN style VARCHAR(50)"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE Posts ADD COLUMN tags TEXT"); } catch (e) { }
 
   return new DatabaseWrapper(pool);
 };

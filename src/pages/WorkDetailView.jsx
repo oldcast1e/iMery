@@ -69,9 +69,16 @@ const WorkDetailView = ({ work, onBack, user }) => {
                     <div className="mb-6">
                         <div className="flex justify-between items-start mb-2">
                             <div>
-                                <span className="inline-block px-3 py-1 bg-black text-white text-xs font-bold rounded-full mb-2">
-                                    {work.category}
-                                </span>
+                                <div className="flex gap-2 mb-2">
+                                    <span className="inline-block px-3 py-1 bg-black text-white text-xs font-bold rounded-full">
+                                        {work.category}
+                                    </span>
+                                    {work.style && (
+                                        <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full border border-gray-200">
+                                            {work.style}
+                                        </span>
+                                    )}
+                                </div>
                                 <h1 className="text-2xl font-bold text-gray-900 leading-tight">
                                     {work.title}
                                 </h1>
@@ -158,17 +165,21 @@ const WorkDetailView = ({ work, onBack, user }) => {
 
                         {/* Tags */}
                         {work.tags && work.tags.length > 0 && (
-                            <div className="pt-4">
+                            <div className="pt-4 animate-fade-in">
                                 <div className="flex flex-wrap gap-2">
-                                    {work.tags.map((tag, index) => (
-                                        <span
-                                            key={index}
-                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-sm font-medium"
-                                        >
-                                            <Tag size={12} />
-                                            {tag}
-                                        </span>
-                                    ))}
+                                    {work.tags.map((tag, idx) => {
+                                        const label = typeof tag === 'object' ? tag.label : tag;
+                                        const id = typeof tag === 'object' ? tag.id : `old-${idx}`;
+                                        return (
+                                            <span
+                                                key={id}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-600 rounded-xl text-xs font-bold border border-gray-100 shadow-sm"
+                                            >
+                                                <Tag size={12} className="text-gray-400" />
+                                                {label}
+                                            </span>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}

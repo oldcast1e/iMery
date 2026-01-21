@@ -54,7 +54,22 @@ const WorksView = ({ works, folders, setFolders, onWorkClick, onEditClick, onDel
                                 {/* Overlay */}
                                 <div className="absolute bottom-0 left-0 right-0 glass-overlay p-3">
                                     <p className="text-sm font-bold text-black truncate">{work.title}</p>
-                                    <p className="text-xs text-gray-700">{work.date}</p>
+                                    <p className="text-[10px] text-gray-700 truncate">{work.artist} • {work.date}</p>
+
+                                    {/* Tags Display */}
+                                    {work.tags && work.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1.5">
+                                            {work.tags.map((tag, idx) => {
+                                                const label = typeof tag === 'object' ? tag.label : tag;
+                                                const id = typeof tag === 'object' ? tag.id : `old-${idx}`;
+                                                return (
+                                                    <span key={id} className="px-1.5 py-0.5 bg-white/60 text-gray-600 rounded-[4px] text-[8px] font-bold border border-white/40">
+                                                        {label}
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

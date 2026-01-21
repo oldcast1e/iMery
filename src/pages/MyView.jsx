@@ -95,18 +95,18 @@ export default function MyView({ works, user, onLogout }) {
                 <h1 className="text-2xl font-serif font-bold text-primary-900 mb-1">{profile?.nickname || user.nickname}</h1>
                 <p className="text-sm text-gray-500 mb-6 px-8">{profile?.bio || user.bio || "자기소개를 입력해주세요."}</p>
 
-                <div className="flex justify-center gap-8 text-center divide-x divide-gray-200">
-                    <div className="px-4">
-                        <span className="block font-bold text-lg">{stats.posts}</span>
-                        <span className="text-xs text-gray-400">Works</span>
+                <div className="flex justify-center items-center mt-6 divide-x divide-gray-100">
+                    <div className="px-8 flex flex-col items-center">
+                        <span className="text-xl font-bold text-black">{stats.posts}</span>
+                        <span className="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Works</span>
                     </div>
-                    <div className="px-4">
-                        <span className="block font-bold text-lg">{stats.followers}</span>
-                        <span className="text-xs text-gray-400">Followers</span>
+                    <div className="px-8 flex flex-col items-center">
+                        <span className="text-xl font-bold text-black">{stats.followers}</span>
+                        <span className="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Followers</span>
                     </div>
-                    <div className="px-4">
-                        <span className="block font-bold text-lg">{stats.following}</span>
-                        <span className="text-xs text-gray-400">Following</span>
+                    <div className="px-8 flex flex-col items-center">
+                        <span className="text-xl font-bold text-black">{stats.following}</span>
+                        <span className="text-[11px] text-gray-400 uppercase tracking-wider font-medium">Following</span>
                     </div>
                 </div>
             </div>
@@ -195,8 +195,22 @@ function ActivityList({ items, emptyMessage, type }) {
                     {/* Details */}
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <h3 className="font-bold text-black truncate">{item.title || item.post_title}</h3>
-                        <p className="text-xs text-gray-500 mb-1">{item.artist || item.artist_name || 'Unknown Artist'}</p>
+                        <p className="text-xs text-gray-500 mb-2">{item.artist || item.artist_name || 'Unknown Artist'}</p>
 
+                        {/* Tags Rendering */}
+                        {item.tags && item.tags.length > 0 && Array.isArray(item.tags) && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                                {item.tags.map((tag, idx) => {
+                                    const label = typeof tag === 'object' ? tag.label : tag;
+                                    const id = typeof tag === 'object' ? tag.id : `old-${idx}`;
+                                    return (
+                                        <span key={id} className="px-2 py-0.5 bg-gray-50 text-gray-400 rounded text-[9px] font-bold border border-gray-100">
+                                            {label}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        )}
                         {/* Rating if available */}
                         {(item.rating !== undefined) && (
                             <div className="flex text-yellow-400 mb-1">

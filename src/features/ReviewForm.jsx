@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Star, Check } from 'lucide-react';
+import TagSelector from '../components/TagSelector';
 
 const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null }) => {
     const [formData, setFormData] = useState({
@@ -9,6 +10,7 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
         rating: 5,
         review: '',
         tags: [],
+        style: '',
         date: new Date().toISOString().split('T')[0] // local state YYYY-MM-DD
     });
 
@@ -27,6 +29,7 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
                 rating: existingWork.rating || 5,
                 review: existingWork.review || existingWork.description || '',
                 tags: existingWork.tags || [],
+                style: existingWork.style || '',
                 date: (existingWork.work_date || existingWork.date || '').replace(/\./g, '-').slice(0, 10) || new Date().toISOString().split('T')[0],
             });
             if (existingWork.artist === '작가 미상' || existingWork.artist_name === '작가 미상') {
@@ -43,6 +46,7 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
                 rating: 5,
                 review: '',
                 tags: [],
+                style: '',
                 date: new Date().toISOString().split('T')[0],
             });
             setIsUnknownArtist(false);
@@ -179,13 +183,34 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
                         />
                     </div>
 
+                    {/* 2.1 Style */}
+                    <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-gray-400 tracking-widest uppercase px-1">Style (화풍)</label>
+                        <input
+                            type="text"
+                            value={formData.style}
+                            onChange={(e) => setFormData({ ...formData, style: e.target.value })}
+                            placeholder="예: 인상주의, 표현주의, 추상화..."
+                            className="w-full px-5 py-3 glass rounded-2xl focus:outline-none focus:ring-2 focus:ring-black/5 border-white/40 text-sm font-medium transition-all"
+                        />
+                    </div>
+
                     {/* 2.5 Date */}
                     <div className="space-y-2">
                         <label className="text-[11px] font-bold text-gray-400 tracking-widest uppercase px-1">Date</label>
                         <input
                             type="date"
                             value={formData.date}
-                            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                            max={new Date().toISOString().split('T')[0]}
+                            onChange={(e) => {
+                                const selectDate = e.target.value;
+                                const today = new Date().toISOString().split('T')[0];
+                                if (selectDate > today) {
+                                    alert('미래의 날짜는 선택할 수 없습니다.');
+                                    return;
+                                }
+                                setFormData({ ...formData, date: selectDate });
+                            }}
                             className="w-full px-5 py-3 glass rounded-2xl focus:outline-none focus:ring-2 focus:ring-black/5 border-white/40 text-sm font-medium transition-all"
                             required
                         />
@@ -209,6 +234,15 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
                                 </button>
                             ))}
                         </div>
+                    </div>
+
+                    {/* 3.5 Tags */}
+                    <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-gray-400 tracking-widest uppercase px-1">Tags</label>
+                        <TagSelector
+                            selectedTags={formData.tags}
+                            onTagsChange={(tags) => setFormData({ ...formData, tags })}
+                        />
                     </div>
 
                     {/* 4. Rating */}
