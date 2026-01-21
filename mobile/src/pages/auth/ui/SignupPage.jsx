@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import api from '../../../shared/api/client';
+import logo from '../../../../assets/iMery_Log_Main_1.png';
 
 export default function SignupPage() {
     const router = useRouter();
@@ -30,9 +31,10 @@ export default function SignupPage() {
     return (
         <View className="flex-1 bg-white items-center justify-center px-6">
             <View className="w-full max-w-sm">
-                <View className="mb-10 items-center">
-                    <Text className="text-3xl font-bold mb-2 text-black">회원가입</Text>
-                    <Text className="text-gray-500 text-lg">iMery의 회원이 되어보세요</Text>
+                <View className="items-center mb-8">
+                    <Image source={logo} className="w-16 h-16 mb-4" resizeMode="contain" />
+                    <Text className="text-3xl font-bold text-black mb-2">회원가입</Text>
+                    <Text className="text-gray-500 text-lg">iMery의 회원의 되어보세요</Text>
                 </View>
 
                 <View className="space-y-4">
