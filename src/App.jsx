@@ -441,6 +441,7 @@ function App() {
         isOpen={notificationPanelOpen}
         onClose={() => setNotificationPanelOpen(false)}
         notifications={notifications}
+        user={user}
       />
 
       <div className="pt-16 pb-20">

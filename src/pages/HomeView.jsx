@@ -69,7 +69,12 @@ const HomeView = ({
         // Sort
         if (sortBy === 'latest') {
             filtered = [...filtered].sort((a, b) => {
-                return new Date(b.date.replace(/\./g, '-')) - new Date(a.date.replace(/\./g, '-'));
+                // Use created_at for strict upload time sorting (Latest first)
+                // Fallback to ID if created_at is missing for some reason
+                if (a.created_at && b.created_at) {
+                    return new Date(b.created_at) - new Date(a.created_at);
+                }
+                return b.id - a.id;
             });
         } else if (sortBy === 'name') {
             filtered = [...filtered].sort((a, b) => a.title.localeCompare(b.title));

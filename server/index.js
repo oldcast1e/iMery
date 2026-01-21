@@ -333,7 +333,7 @@ app.put('/friends/accept', async (req, res) => {
 app.get('/friends/:userId', async (req, res) => {
     const { userId } = req.params;
     const friends = await db.all(`
-        SELECT u.id, u.nickname, f.status, f.id as friendship_id
+        SELECT u.id, u.nickname, f.status, f.id as friendship_id, f.requester_id
         FROM Friendships f
         JOIN Users u ON (f.requester_id = u.id OR f.addressee_id = u.id)
         WHERE (f.requester_id = ? OR f.addressee_id = ?) AND u.id != ?

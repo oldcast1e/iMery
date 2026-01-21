@@ -19,3 +19,81 @@
     - 저장된 작품 클릭 시, AI 분석 버튼 추가. (추후 구현)
     - AI 버튼 디자인 앱과 잘 어울려야하며, AI 기능이 부각되도록 디자인.
     
+# 2026.01.19
+### 데이터 베이스 구조
+```
+HOST:
+gateway01.ap-northeast-1.prod.aws.tidbcloud.com
+
+PORT:
+4000
+
+USERNAME:
+2xT7BQvhhuaABjr.root
+
+PASSWORD:
+ojm4dVHzyXqWJK6S
+
+DATABASE:
+test
+```
+
+### 트리 구조 시각화
+```
+🐬 gateway01.ap-northeast... (8.0.11-TiDB-v7.5.6-serverless)
+│
+├── 🛡️ Security
+│   └── 👤 Users (4)
+│       ├── 👤 2xT7BQvhhuaABjr.cloud_admin@%
+│       ├── 👤 2xT7BQvhhuaABjr.jystar_3YjgQz8W@%
+│       ├── 👤 2xT7BQvhhuaABjr.root@%
+│       └── 👤 role_admin@%
+│
+├── 🛢️ mysql (System DB)
+│   ├── 🪙 Query
+│   ├── ▦ Tables (52)
+│   ├── 👁️ Views
+│   ├── 𝑓 Functions
+│   └── ⚙️ Procedures
+│
+└── 🛢️ test (142K)
+    │
+    ├── 🪙 Query
+    │
+    └── ▦ Tables (2)
+        │
+        ├── 📄 posts (Rows: 7)
+        │   │
+        │   ├── 🔲 Columns
+        │   │   ├── 🔑 id           [int(11)]      : PK (Primary Key)
+        │   │   ├── 🔗 user_id      [int(11)]      : FK (Foreign Key -> users.id)
+        │   │   ├── 📝 title        [varchar(100)] : 게시물 제목
+        │   │   ├── 🎨 artist_name  [varchar(100)] : 작가 이름
+        │   │   ├── 🌐 image_url    [text]         : 이미지 경로
+        │   │   ├── 📄 description  [text]         : 작품 설명
+        │   │   ├── 🤖 ai_summary   [text]         : AI 요약 내용 (Nullable)
+        │   │   ├── 🎵 music_url    [text]         : 음악 링크 (Nullable)
+        │   │   ├── ⭐ rating       [int(11)]      : 별점
+        │   │   └── 🕒 created_at   [timestamp]    : 생성 일시
+        │   │
+        │   ├── 🗝️ Index
+        │   │   ├── 🔑 PRIMARY (id)
+        │   │   └── 🔗 fk_1 (user_id)
+        │   │
+        │   └── ⚡ Triggers / Partitions (None)
+        │
+        └── 📄 users (Rows: 6)
+            │
+            ├── 🔲 Columns
+            │   │   ├── 🔑 id           [int(11)]      : PK (Primary Key)
+            │   │   ├── 🔤 username     [varchar(50)]  : 로그인 아이디 (Unique)
+            │   │   ├── 🔒 password     [varchar(255)] : 암호화된 비밀번호
+            │   │   ├── 🏷️ nickname     [varchar(50)]  : 사용자 닉네임
+            │   │   └── 🕒 created_at   [timestamp]    : 가입 일시
+            │   │
+            ├── 🗝️ Index
+            │   │   ├── 🔑 PRIMARY (id)
+            │   │   └── 🔤 username (username)
+            │   │
+            └── ⚡ Triggers / Partitions (None)
+```

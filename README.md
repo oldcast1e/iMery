@@ -3,7 +3,7 @@
 > iMery : 작품을 듣는 시간
 
 iMery는 미술관에서 감상한 작품을 기록하고, 친구들과 감상을 공유하며 소통할 수 있는 Web-Community App입니다.
-React 기반의 프론트엔드와 Node.js/Express/SQLite 기반의 로컬 백엔드를 갖춘 Full-Stack 애플리케이션입니다.
+React 기반의 프론트엔드와 Node.js/Express/TiDB 기반의 Full-Stack 애플리케이션입니다.
 
 ---
 
@@ -95,7 +95,7 @@ npm run dev
 | Frontend | React, Vite | 컴포넌트 기반 UI 구성 및 빠른 빌드 |
 | Style | Tailwind CSS | 유려하고 모던한 UI 디자인 |
 | Backend | Node.js, Express | REST API 서버 구축 |
-| Database | SQLite | 로컬 파일 기반의 경량 데이터베이스 |
+| Database | TiDB Cloud (MySQL) | 고가용성 클라우드 데이터베이스 (MySQL 호환) |
 | Auth | JWT (JSON Web Token) | 안전한 사용자 인증 구현 |
 
 ---
