@@ -89,16 +89,16 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
                 ...existingWork,
                 ...workData,
                 id: existingWork.id,
-            });
+            }, formData.rawFile);
         } else {
             // Creating new work
             onSave({
                 ...workData,
                 id: Date.now(),
                 date: formData.date.replace(/-/g, '.'),
-                thumbnail: imageData, // Local preview
-                image_url: imageData, // API expectation (base64)
-            });
+                thumbnail: imageData,
+                image_url: imageData,
+            }, formData.rawFile);
         }
 
         onClose();
@@ -128,12 +128,36 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
 
                 {/* Image Preview */}
                 {(imageData || existingWork?.thumbnail || existingWork?.image_url) && (
-                    <div className="mb-8 rounded-3xl overflow-hidden shadow-premium border-2 border-white">
+                    <div className="mb-8 rounded-3xl overflow-hidden shadow-premium border-2 border-white relative group">
                         <img
-                            src={imageData || existingWork?.thumbnail || existingWork?.image_url}
+                            src={imageData instanceof File ? URL.createObjectURL(imageData) : (imageData || existingWork?.thumbnail || existingWork?.image_url)}
                             alt="Work"
                             className="w-full h-40 object-cover"
                         />
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <label className="bg-white/90 text-black px-4 py-2 rounded-full text-xs font-bold shadow-lg cursor-pointer hover:bg-white active:scale-95 transition-all">
+                                사진 변경
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    rawFile: file,
+                                                    internal_preview: reader.result
+                                                }));
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }}
+                                />
+                            </label>
+                        </div>
                     </div>
                 )}
 

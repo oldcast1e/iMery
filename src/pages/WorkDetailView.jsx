@@ -8,6 +8,7 @@ const WorkDetailView = ({ work, onBack, user }) => {
     const [commentText, setCommentText] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisData, setAnalysisData] = useState(null);
+    const [analysisError, setAnalysisError] = useState(null);
     const audioRef = useRef(null);
 
     useEffect(() => {
@@ -20,6 +21,7 @@ const WorkDetailView = ({ work, onBack, user }) => {
     const handleAnalyze = async () => {
         if (isAnalyzing) return;
         setIsAnalyzing(true);
+        setAnalysisError(null);
         try {
             const data = await api.analyzePost(work.id);
             // The API returns { result: { genre, styles, ... }, ai_summary, ... }
@@ -36,8 +38,10 @@ const WorkDetailView = ({ work, onBack, user }) => {
                 }), {})
             };
             setAnalysisData(flattened);
+            setAnalysisError(null);
         } catch (e) {
-            alert(e.message || '분석 중 오류가 발생했습니다.');
+            console.error('[AI Analysis Error]:', e);
+            setAnalysisError(e.message || 'AI 분석 중 오류가 발생했습니다.');
         } finally {
             setIsAnalyzing(false);
         }
@@ -166,7 +170,7 @@ const WorkDetailView = ({ work, onBack, user }) => {
                                     <p className="text-xs text-gray-500 truncate">Tap to listen to the analysis</p>
                                 </div>
                                 <Music size={20} className="text-gray-300" />
-                                <audio ref={audioRef} src={work.music_url} onEnded={() => setIsPlaying(false)} className="hidden" />
+                                <audio ref={audioRef} src={work.music_url || ''} onEnded={() => setIsPlaying(false)} className="hidden" />
                             </div>
                         )}
 
@@ -191,23 +195,54 @@ const WorkDetailView = ({ work, onBack, user }) => {
                     <button
                         onClick={handleAnalyze}
                         disabled={isAnalyzing}
-                        className={`w-full py-3 mb-4 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 ${isAnalyzing
-                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-90'
+                        className={`w-full py-4 mb-4 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 relative overflow-hidden ${isAnalyzing
+                                ? 'bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 text-white cursor-wait'
+                                : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:shadow-xl hover:scale-[1.02]'
                             }`}
                     >
+                        {isAnalyzing && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                        )}
                         {isAnalyzing ? (
                             <>
-                                <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                                <span>AI가 작품을 감상 중입니다... (약 90초 소요)</span>
+                                <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                                <span className="text-sm sm:text-base font-bold">
+                                    AI가 작품을 감상 중입니다...
+                                    <span className="hidden sm:inline"> (약 90초 소요)</span>
+                                </span>
                             </>
                         ) : (
                             <>
                                 <Sparkles size={20} className="animate-pulse" />
-                                <span>AI 분석 받아보기</span>
+                                <span className="text-sm sm:text-base">AI 분석 받아보기</span>
                             </>
                         )}
                     </button>
+
+                    {/* Error Message */}
+                    {analysisError && (
+                        <div className="mb-4 p-4 sm:p-5 bg-red-50/80 backdrop-blur-sm border border-red-200 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-full flex items-center justify-center">
+                                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm sm:text-base font-bold text-red-900 mb-1">분석 실패</h4>
+                                    <p className="text-xs sm:text-sm text-red-700 leading-relaxed break-words">
+                                        {analysisError}
+                                    </p>
+                                    <button
+                                        onClick={() => setAnalysisError(null)}
+                                        className="mt-3 text-xs sm:text-sm font-medium text-red-600 hover:text-red-800 underline"
+                                    >
+                                        닫기
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* AI Analysis Results Visualizer */}
                     {analysisData && (
@@ -245,6 +280,24 @@ const WorkDetailView = ({ work, onBack, user }) => {
                                     );
                                 })}
                             </div>
+
+                            {/* AI Summary Section */}
+                            {(analysisData.ai_summary || work.ai_summary) && (
+                                <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-700">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Sparkles size={16} className="text-blue-600" />
+                                        <h3 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">AI Summary</h3>
+                                    </div>
+                                    <div className="relative p-5 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 rounded-3xl border border-blue-100/50 shadow-sm overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                                            <Sparkles size={40} className="text-blue-500" />
+                                        </div>
+                                        <p className="relative z-10 text-sm text-gray-800 leading-relaxed font-serif italic">
+                                            "{analysisData.ai_summary || work.ai_summary}"
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Music Player Placeholder / Integration */}
                             {(analysisData.music_url || work.music_url) && (

@@ -199,7 +199,7 @@ function App() {
     setReviewFormOpen(true);
   };
 
-  const handleSaveReview = async (workData) => {
+  const handleSaveReview = async (workData, rawFile) => {
     try {
       const payload = new FormData();
       payload.append('user_id', user.user_id);
@@ -214,10 +214,13 @@ function App() {
       payload.append('tags', JSON.stringify(workData.tags));
       payload.append('style', workData.style || '');
 
-      if (currentFile) {
-        payload.append('image', currentFile);
+      // Use rawFile from ReviewForm if any (for editing or direct selection), otherwise fall back to currentFile (from UploadModal)
+      const fileToUpload = rawFile || currentFile;
+
+      if (fileToUpload) {
+        payload.append('image', fileToUpload);
       } else if (workData.image_url || workData.thumbnail || editingWork?.image_url) {
-        // Preserve existing image if no new file is selected
+        // Fallback for existing or non-file based images
         const imgToSave = workData.image_url || workData.thumbnail || editingWork?.image_url;
         payload.append('image_url', imgToSave);
       }
@@ -230,8 +233,7 @@ function App() {
         showToast('작품이 업로드되었습니다');
       }
 
-      await refreshWorks(); // Refresh list from server
-
+      await refreshWorks();
     } catch (error) {
       alert(`저장 실패: ${error.message}`);
     } finally {

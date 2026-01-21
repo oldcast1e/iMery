@@ -9,6 +9,9 @@ import { fileURLToPath } from 'url';
 import { initDb } from './db.js';
 import { S3Client } from '@aws-sdk/client-s3';
 import multerS3 from 'multer-s3';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -138,11 +141,14 @@ app.post('/posts/', upload.single('image'), async (req, res) => {
     const finalGenre = genre || '그림';
     let image_url = req.body.image_url;
 
-    if (req.file) {
-        image_url = req.file.location; // S3 URL returned by multer-s3
-    }
-
     try {
+        if (req.file) {
+            console.log(`[S3] File uploaded successfully to: ${req.file.location}`);
+            image_url = req.file.location;
+        } else {
+            console.warn('[Multer] No file detected in request. Using image_url from body if provided.');
+        }
+
         const result = await db.run(
             `INSERT INTO Posts (user_id, title, artist_name, image_url, description, rating, ai_summary, music_url, work_date, genre, tags, style) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
