@@ -45,10 +45,10 @@ export default function PostCard({ work, onClick, onTagClick, onEditClick, onDel
                     />
 
                     {/* Genre Badge */}
-                    {work.genre && (
+                    {(work.genre || work.category) && (
                         <div className="absolute top-4 right-4 z-10">
                             <div className="px-3 py-1.5 glass rounded-full border border-white/40 shadow-premium">
-                                <span className="text-[10px] font-bold text-black tracking-tight">{work.genre}</span>
+                                <span className="text-[10px] font-bold text-black tracking-tight">{work.genre || work.category}</span>
                             </div>
                         </div>
                     )}
