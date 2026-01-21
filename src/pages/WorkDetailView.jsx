@@ -6,11 +6,42 @@ const WorkDetailView = ({ work, onBack, user }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [comments, setComments] = useState([]);
     const [commentText, setCommentText] = useState('');
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisData, setAnalysisData] = useState(null);
     const audioRef = useRef(null);
 
     useEffect(() => {
         loadComments();
-    }, [work.id]);
+        if (work.analysis_id) {
+            setAnalysisData(work); // If already analyzed, work object contains analysis fields
+        }
+    }, [work.id, work.analysis_id]);
+
+    const handleAnalyze = async () => {
+        if (isAnalyzing) return;
+        setIsAnalyzing(true);
+        try {
+            const data = await api.analyzePost(work.id);
+            // The API returns { result: { genre, styles, ... }, ai_summary, ... }
+            // We flattern it for easier UI binding
+            const flattened = {
+                ...data.result,
+                ai_genre: data.result.genre,
+                ai_summary: data.ai_summary,
+                // Map styles array to style1~5 for the chart
+                ...data.result.styles.reduce((acc, s, i) => ({
+                    ...acc,
+                    [`style${i + 1}`]: s.name,
+                    [`score${i + 1}`]: s.score
+                }), {})
+            };
+            setAnalysisData(flattened);
+        } catch (e) {
+            alert(e.message || '분석 중 오류가 발생했습니다.');
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
 
     const loadComments = async () => {
         try {
@@ -156,12 +187,89 @@ const WorkDetailView = ({ work, onBack, user }) => {
                         </div>
                     </div>
 
-                    {/* AI Analysis Button Placeholder */}
-                    <button className="w-full py-3 mb-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity transform active:scale-95">
-                        <Sparkles size={20} className="animate-pulse" />
-                        AI 분석 받아보기
-                        <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full ml-1">Coming Soon</span>
+                    {/* AI Analysis Button */}
+                    <button
+                        onClick={handleAnalyze}
+                        disabled={isAnalyzing}
+                        className={`w-full py-3 mb-4 rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-95 ${isAnalyzing
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-90'
+                            }`}
+                    >
+                        {isAnalyzing ? (
+                            <>
+                                <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                <span>AI가 작품을 감상 중입니다... (약 90초 소요)</span>
+                            </>
+                        ) : (
+                            <>
+                                <Sparkles size={20} className="animate-pulse" />
+                                <span>AI 분석 받아보기</span>
+                            </>
+                        )}
                     </button>
+
+                    {/* AI Analysis Results Visualizer */}
+                    {analysisData && (
+                        <div className="mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Sparkles size={14} className="text-purple-500" />
+                                    AI Analysis Result
+                                </h3>
+                                <span className="px-3 py-1 bg-purple-100 text-purple-600 text-[10px] font-bold rounded-full">
+                                    {analysisData.genre || analysisData.ai_genre}
+                                </span>
+                            </div>
+
+                            {/* Style Probability Charts */}
+                            <div className="space-y-4 mb-6">
+                                {[1, 2, 3, 4, 5].map(num => {
+                                    const styleName = analysisData[`style${num}`];
+                                    const score = analysisData[`score${num}`];
+                                    if (!styleName) return null;
+
+                                    return (
+                                        <div key={num} className="space-y-1.5">
+                                            <div className="flex justify-between text-xs font-bold">
+                                                <span className="text-gray-600">{styleName}</span>
+                                                <span className="text-purple-500">{Math.round(score * 100)}%</span>
+                                            </div>
+                                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full"
+                                                    style={{ width: `${score * 100}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Music Player Placeholder / Integration */}
+                            {(analysisData.music_url || work.music_url) && (
+                                <div className="p-4 bg-white rounded-xl border border-purple-100 flex items-center gap-3">
+                                    <button
+                                        onClick={handlePlayToggle}
+                                        className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center flex-shrink-0 hover:bg-purple-700 transition-colors shadow-premium"
+                                    >
+                                        {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+                                    </button>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-bold text-purple-900 truncate">분석 기반 추천 음악</p>
+                                        <p className="text-[10px] text-purple-400 truncate">이 작품의 분위기와 어울리는 AI 생성 곡</p>
+                                    </div>
+                                    <Music size={18} className="text-purple-200" />
+                                    <audio
+                                        ref={audioRef}
+                                        src={analysisData.music_url || work.music_url}
+                                        onEnded={() => setIsPlaying(false)}
+                                        className="hidden"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Review Content */}
                     <div className="space-y-6">
@@ -172,14 +280,14 @@ const WorkDetailView = ({ work, onBack, user }) => {
                             </p>
                         </div>
 
-                        {/* AI Summary Section */}
-                        {work.ai_summary && (
-                            <div>
+                        {/* AI Summary Text */}
+                        {(analysisData?.ai_summary || work.ai_summary) && (
+                            <div className="animate-in fade-in duration-700">
                                 <h3 className="text-lg font-bold mb-3 border-b border-gray-100 pb-2 flex items-center gap-2">
-                                    <span className="text-blue-600">✨ AI 분석</span>
+                                    <span className="text-indigo-600">✨ AI Insight</span>
                                 </h3>
-                                <div className="bg-blue-50 p-4 rounded-xl text-sm text-gray-700 leading-relaxed">
-                                    {work.ai_summary}
+                                <div className="bg-indigo-50/50 p-4 rounded-2xl text-sm text-gray-700 leading-relaxed border border-indigo-100/50 italic">
+                                    "{analysisData?.ai_summary || work.ai_summary}"
                                 </div>
                             </div>
                         )}

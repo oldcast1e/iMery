@@ -7,6 +7,8 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
 import { initDb } from './db.js';
+import { S3Client } from '@aws-sdk/client-s3';
+import multerS3 from 'multer-s3';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,16 +33,27 @@ app.use((req, res, next) => {
     next();
 });
 
-// Multer Setup
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
+// AWS S3 Configuration
+const s3 = new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     }
 });
-const upload = multer({ storage });
+
+// Multer S3 Setup
+const upload = multer({
+    storage: multerS3({
+        s3: s3,
+        bucket: process.env.AWS_S3_BUCKET,
+        contentType: multerS3.AUTO_CONTENT_TYPE,
+        key: (req, file, cb) => {
+            const extension = path.extname(file.originalname);
+            cb(null, `uploads/${Date.now()}-${file.originalname}`);
+        }
+    })
+});
 
 let db;
 
@@ -126,7 +139,7 @@ app.post('/posts/', upload.single('image'), async (req, res) => {
     let image_url = req.body.image_url;
 
     if (req.file) {
-        image_url = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+        image_url = req.file.location; // S3 URL returned by multer-s3
     }
 
     try {
@@ -190,7 +203,7 @@ app.put('/posts/:id', upload.single('image'), async (req, res) => {
     let image_url = req.body.image_url;
 
     if (req.file) {
-        image_url = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+        image_url = req.file.location; // S3 URL
     }
 
     try {
@@ -211,7 +224,7 @@ app.put('/users/profile', upload.single('image'), async (req, res) => {
     let profile_image_url = req.body.image_url;
 
     if (req.file) {
-        profile_image_url = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+        profile_image_url = req.file.location; // S3 URL
     }
 
     try {
@@ -494,14 +507,89 @@ app.get('/users/:id/comments', async (req, res) => {
     }
 });
 
+// AI Analysis Proxy
+app.post('/posts/:id/analyze', async (req, res) => {
+    const { id } = req.params;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90000); // 90s timeout
+
+    try {
+        const post = await db.get('SELECT image_url FROM Posts WHERE id = ?', [id]);
+        if (!post) return res.status(404).json({ detail: 'Post not found' });
+
+        console.log(`[AI] Analyzing image for Post ${id}: ${post.image_url}`);
+
+        const response = await fetch('https://2tv7p4mphpm7ow-8000.proxy.runpod.net/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_url: post.image_url }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`AI Server responded with ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        // Save to art_analysis
+        const analysisResult = await db.run(`
+            INSERT INTO art_analysis (
+                post_id, genre, 
+                style1, score1, style2, score2, style3, score3, style4, score4, style5, score5, 
+                image_url, music_url
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+            id, data.genre,
+            data.styles[0]?.name, data.styles[0]?.score,
+            data.styles[1]?.name, data.styles[1]?.score,
+            data.styles[2]?.name, data.styles[2]?.score,
+            data.styles[3]?.name, data.styles[3]?.score,
+            data.styles[4]?.name, data.styles[4]?.score,
+            data.image_url, data.music_url
+        ]);
+
+        const aiSummary = `AI 분석 결과, 이 작품은 '${data.genre}' 장르로 분류되며, 가장 두드러지는 화풍은 '${data.styles[0]?.name}'(${Math.round(data.styles[0]?.score * 100)}%) 입니다. 이에 어울리는 음악이 생성되었습니다.`;
+
+        // Update Post
+        await db.run(`
+            UPDATE Posts 
+            SET ai_summary = ?, music_url = ?, analysis_id = ?
+            WHERE id = ?
+        `, [aiSummary, data.music_url, analysisResult.lastID, id]);
+
+        res.json({
+            message: '분석 완료',
+            result: data,
+            ai_summary: aiSummary,
+            analysis_id: analysisResult.lastID
+        });
+
+    } catch (error) {
+        clearTimeout(timeout);
+        console.error('[AI Error]:', error.message);
+        if (error.name === 'AbortError') {
+            res.status(504).json({ detail: 'AI 분석 시간이 너무 오래 걸립니다. (Timeout)' });
+        } else {
+            res.status(500).json({ detail: 'AI 분석 중 오류가 발생했습니다. RunPod 서버 상태를 확인해주세요.' });
+        }
+    }
+});
+
 // Get Post with Details (Updated)
 app.get('/posts/:id', async (req, res) => {
     const { id } = req.params;
     const post = await db.get(`
         SELECT p.*, u.nickname,
-        (SELECT COUNT(*) FROM Likes WHERE post_id = p.id) as like_count
+        (SELECT COUNT(*) FROM Likes WHERE post_id = p.id) as like_count,
+        aa.genre as ai_genre, aa.style1, aa.score1, aa.style2, aa.score2, aa.style3, aa.score3, aa.style4, aa.score4, aa.style5, aa.score5
         FROM Posts p
         JOIN Users u ON p.user_id = u.id
+        LEFT JOIN art_analysis aa ON p.analysis_id = aa.id
         WHERE p.id = ?
     `, [id]);
     res.json(post);

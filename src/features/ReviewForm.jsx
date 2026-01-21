@@ -237,7 +237,7 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
                     </div>
 
                     {/* 3.5 Tags */}
-                    <div className="space-y-1">
+                    <div className="space-y-0.5">
                         <div className="flex items-center gap-2 px-1">
                             <label className="text-[11px] font-bold text-gray-400 tracking-widest uppercase">Tags</label>
                             <span className="text-[10px] text-gray-300 font-medium italic">태그를 선택하여 작품에 생동감을 불어넣으세요 (최대 5개)</span>

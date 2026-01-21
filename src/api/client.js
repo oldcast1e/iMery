@@ -118,6 +118,20 @@ const api = {
         return response.json();
     },
 
+    analyzePost: async (id) => {
+        try {
+            const response = await fetch(`${BASE_URL}/posts/${id}/analyze`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.detail || '분석 실패');
+            return data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     // --- Social APIs ---
 
     searchUsers: async (nickname) => {

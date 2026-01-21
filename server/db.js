@@ -153,6 +153,29 @@ export const initDb = async () => {
         )
     `);
 
+  // 8. Art Analysis Results
+  await pool.execute(`
+        CREATE TABLE IF NOT EXISTS art_analysis (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            post_id INT,
+            genre VARCHAR(255),
+            style1 VARCHAR(255),
+            score1 FLOAT,
+            style2 VARCHAR(255),
+            score2 FLOAT,
+            style3 VARCHAR(255),
+            score3 FLOAT,
+            style4 VARCHAR(255),
+            score4 FLOAT,
+            style5 VARCHAR(255),
+            score5 FLOAT,
+            image_url TEXT,
+            music_url TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(post_id) REFERENCES Posts(id) ON DELETE CASCADE
+        )
+    `);
+
   // --- Schema Updates for Existing Tables (ALTER) ---
   // Because CREATE TABLE IF NOT EXISTS doesn't add missing columns.
 
@@ -165,6 +188,7 @@ export const initDb = async () => {
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN genre VARCHAR(100)"); } catch (e) { }
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN style VARCHAR(50)"); } catch (e) { }
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN tags TEXT"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE Posts ADD COLUMN analysis_id INT"); } catch (e) { }
 
   return new DatabaseWrapper(pool);
 };
