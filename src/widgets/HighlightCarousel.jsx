@@ -28,21 +28,23 @@ const HighlightCarousel = ({ works = [], onWorkClick, onMoreClick }) => {
                                 className="w-full h-full object-cover"
                             />
 
-                            {/* [UI CHANGE] Wrap content with w-fit for a background that 'hugs' the text */}
-                            <div className="absolute bottom-1.5 left-0 right-0 flex justify-center px-2">
-                                <div className="bg-white/60 backdrop-blur-md px-2 py-1 rounded-xl shadow-sm border border-white/20 w-fit max-w-full">
-                                    {/* Tag: Minimal spacing (mb-0.5) */}
+                            {/* [UI CHANGE] Tightened spacing and Butler font application */}
+                            <div className="absolute bottom-1.5 left-1.5 right-1.5">
+                                {/* [UI CHANGE] Minimized vertical padding (py-1) to make the background stick closely to the text */}
+                                <div className="bg-white/60 backdrop-blur-md py-1 px-1.5 rounded-xl shadow-sm border border-white/20">
+                                    {/* [UI CHANGE] Removed top padding (pt-0) and bottom margin (mb-0.5) for max tightness */}
                                     <div
-                                        className="bg-black text-white inline-block px-1 py-0.5 mb-0.5 shadow-sm"
+                                        className="bg-black text-white inline-block px-0.5 pt-0 pb-0.5 mb-0.5 shadow-sm"
                                         style={{
                                             clipPath: 'polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%)',
                                             paddingRight: '8px'
                                         }}
                                     >
+                                        {/* [UI CHANGE] font-serif now uses 'Butler' font as configured in tailwind.config.js */}
                                         <p className="text-[7px] font-serif font-bold tracking-tight leading-none">{work.genre || '그림'}</p>
                                     </div>
-                                    {/* Title: tight leading and font size */}
-                                    <p className="text-[11px] font-serif font-bold text-black truncate leading-none">
+                                    {/* [UI CHANGE] Reduced text size to 12px and tightened leading for a compact look */}
+                                    <p className="text-xs font-serif font-bold text-black truncate leading-none">
                                         {work.title}
                                     </p>
                                 </div>
