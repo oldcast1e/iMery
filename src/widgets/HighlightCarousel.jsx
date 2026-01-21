@@ -29,18 +29,18 @@ const HighlightCarousel = ({ works = [], onWorkClick, onMoreClick }) => {
                             />
 
                             {/* Text Overlay with Tag-shaped Genre Badge */}
-                            <div className="absolute bottom-2.5 left-2.5 right-2.5">
-                                <div className="bg-white/70 backdrop-blur-sm px-3 py-1.5 rounded-xl shadow-sm border border-white/20">
+                            <div className="absolute bottom-2 left-2 right-2">
+                                <div className="bg-white/80 backdrop-blur-sm px-2 py-1 rounded-xl shadow-sm border border-white/20">
                                     <div
-                                        className="bg-black text-white inline-block px-2 py-0.5 mb-1 shadow-sm"
+                                        className="bg-black text-white inline-block px-1.5 py-0.5 mb-0.5 shadow-sm"
                                         style={{
                                             clipPath: 'polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%)',
-                                            paddingRight: '8px'
+                                            paddingRight: '6px'
                                         }}
                                     >
-                                        <p className="text-[7px] font-bold tracking-tight">{work.genre || '그림'}</p>
+                                        <p className="text-[7px] font-serif font-bold tracking-tight">{work.genre || '그림'}</p>
                                     </div>
-                                    <p className="text-xs font-bold text-black truncate">{work.title}</p>
+                                    <p className="text-[11px] font-serif font-bold text-black truncate leading-tight">{work.title}</p>
                                 </div>
                             </div>
                         </div>
