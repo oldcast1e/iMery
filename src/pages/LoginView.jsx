@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import logo from '../assets/iMery_Log_Main_1.png';
+import logo from '../assets/iMery_Log_Main_3.png';
 
 const LoginView = ({ onLogin, onSwitchToSignup }) => {
     const [formData, setFormData] = useState({
@@ -26,7 +26,7 @@ const LoginView = ({ onLogin, onSwitchToSignup }) => {
         <div className="min-h-[calc(100vh-140px)] flex flex-col items-center justify-center px-4">
             <div className="w-full max-w-sm">
                 <div className="text-center mb-8 flex flex-col items-center">
-                    <img src={logo} alt="iMery Icon" className="w-16 h-16 object-contain mb-3" />
+                    <img src={logo} alt="iMery Icon" className="w-14 h-14 object-contain mb-3" />
                     <h1 className="text-4xl font-serif font-bold mb-2">iMery</h1>
                     <p className="text-gray-500">당신의 감각을 기록하세요</p>
                 </div>

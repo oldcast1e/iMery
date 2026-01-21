@@ -1,6 +1,6 @@
 import { Bell, Globe } from 'lucide-react';
 import { useState } from 'react';
-import logo from '../assets/iMery_Log_Main_1.png';
+import logo from '../assets/iMery_Log_Main_3.png';
 
 const Header = ({ onNavigateHome, language, onLanguageToggle, onNotificationClick }) => {
     return (
@@ -11,7 +11,7 @@ const Header = ({ onNavigateHome, language, onLanguageToggle, onNotificationClic
                     className="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity"
                     onClick={onNavigateHome}
                 >
-                    <img src={logo} alt="iMery Icon" className="w-8 h-8 object-contain" />
+                    <img src={logo} alt="iMery Icon" className="w-6 h-6 object-contain" />
                     <h1 className="text-2xl font-serif font-bold">iMery</h1>
                 </div>
 

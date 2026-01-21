@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import api from '../api/client';
-import logo from '../assets/iMery_Log_Main_1.png';
+import logo from '../assets/iMery_Log_Main_3.png';
 
 const SignupView = ({ onSignupSuccess, onSwitchToLogin }) => {
     const [formData, setFormData] = useState({

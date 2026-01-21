@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../../shared/api/client';
 import useUserStore from '../../../entities/user/model/useUserStore';
-import logo from '../../../../assets/iMery_Log_Main_1.png';
+import logo from '../../../../assets/iMery_Log_Main_3.png';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -37,7 +37,7 @@ export default function LoginPage() {
             <View className="flex-1 items-center justify-center px-6">
                 <View className="w-full max-w-sm">
                     <View className="mb-10 items-center">
-                        <Image source={logo} className="w-20 h-20 mb-4" resizeMode="contain" />
+                        <Image source={logo} className="w-16 h-16 mb-4" resizeMode="contain" />
                         <Text className="text-5xl font-bold mb-3 text-black tracking-tight italic">iMery</Text>
                         <Text className="text-gray-400 text-lg font-medium">당신의 감각을 기록하세요</Text>
                     </View>
