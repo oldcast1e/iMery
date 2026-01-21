@@ -37,7 +37,7 @@
 | `ai_summary` | String | AI 분석 내용 | 객체 인식 결과 등 |
 | `music_url` | String | 배경음악 URL | |
 | `rating` | Integer | 별점 | 1~5점 |
-| `category` | String | 카테고리 (그림, 조각, 사진 등) | **[New]** |
+| `genre` | String | 장르 (그림, 조각, 사진 등) | **[Sync]** |
 | `work_date` | String | 작품 날짜 (YYYY.MM.DD) | **[New]** |
 | `created_at` | DateTime | 작성일 | 자동 생성 |
 

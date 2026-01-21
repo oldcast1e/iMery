@@ -44,11 +44,11 @@ export default function PostCard({ work, onClick, onTagClick, onEditClick, onDel
                         className="w-full h-full object-cover transition-transform duration-700" // REMOVED group-hover:scale-110 per request
                     />
 
-                    {/* Category Badge */}
-                    {work.category && (
+                    {/* Genre Badge */}
+                    {work.genre && (
                         <div className="absolute top-4 right-4 z-10">
                             <div className="px-3 py-1.5 glass rounded-full border border-white/40 shadow-premium">
-                                <span className="text-[10px] font-bold text-black tracking-tight">{work.category}</span>
+                                <span className="text-[10px] font-bold text-black tracking-tight">{work.genre}</span>
                             </div>
                         </div>
                     )}

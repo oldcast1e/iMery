@@ -57,7 +57,7 @@ function App() {
   const [selectedRating, setSelectedRating] = useState('All');
   const [sortBy, setSortBy] = useState('latest');
   const [layout, setLayout] = useState('list');
-  const [selectedCategory, setSelectedCategory] = useState('전체'); // New Category State
+  const [selectedGenre, setSelectedGenre] = useState('전체'); // Filters by genre
   const [myFriendIds, setMyFriendIds] = useState([]); // Array of IDs
 
   // Fetch works from API
@@ -93,7 +93,7 @@ function App() {
         image_url: post.image_url, // PRESERVE IMAGE URL
         work_date: post.work_date,
         date: post.work_date || (post.created_at ? post.created_at.split('T')[0].replace(/-/g, '.') : new Date().toISOString().split('T')[0]),
-        category: post.category || '그림', // Sync Category
+        genre: post.genre || post.category || '그림', // Sync Genre (with backward compatibility)
         rating: post.rating || 0,
         review: post.description || '',
         tags: (() => {
@@ -210,7 +210,7 @@ function App() {
       payload.append('ai_summary', editingWork?.ai_summary || '');
       payload.append('music_url', editingWork?.music_url || '');
       payload.append('work_date', workData.work_date);
-      payload.append('category', workData.category);
+      payload.append('genre', workData.genre || workData.category);
       payload.append('tags', JSON.stringify(workData.tags));
       payload.append('style', workData.style || '');
 
@@ -368,13 +368,16 @@ function App() {
       } else {
         // Home/List Mode: Show ONLY My Works
         filteredWorks = works.filter(w => Number(w.user_id) === Number(user.user_id));
+        if (selectedGenre !== '전체') {
+          filteredWorks = filteredWorks.filter(w => w.genre === selectedGenre);
+        }
       }
     }
 
     const viewProps = {
       works: activeView === 'works' || activeView === 'my' || activeView === 'archive' ? works : filteredWorks,
-      selectedCategory: selectedCategory,
-      onCategoryChange: setSelectedCategory,
+      selectedGenre: selectedGenre,
+      onGenreChange: setSelectedGenre,
       onUploadClick: handleUploadClick,
       onWorkClick: handleWorkClick,
       onTagClick: handleTagClick,

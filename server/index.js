@@ -121,7 +121,8 @@ app.get('/users/:id/likes', async (req, res) => {
 app.post('/posts/', upload.single('image'), async (req, res) => {
     // Supports both Multipart (with file) and JSON (base64 fallback or text only)
     // If file exists, use file path. If not, check body.image_url
-    const { user_id, title, artist_name, description, rating, ai_summary, music_url, work_date, category, tags, style } = req.body;
+    const { user_id, title, artist_name, description, rating, ai_summary, music_url, work_date, genre, category, tags, style } = req.body;
+    const finalGenre = genre || category || '그림';
     let image_url = req.body.image_url;
 
     if (req.file) {
@@ -130,9 +131,9 @@ app.post('/posts/', upload.single('image'), async (req, res) => {
 
     try {
         const result = await db.run(
-            `INSERT INTO Posts (user_id, title, artist_name, image_url, description, rating, ai_summary, music_url, work_date, category, tags, style) 
+            `INSERT INTO Posts (user_id, title, artist_name, image_url, description, rating, ai_summary, music_url, work_date, genre, tags, style) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [user_id, title, artist_name, image_url, description, rating, ai_summary, music_url, work_date || new Date().toISOString().split('T')[0].replace(/-/g, '.'), category || '그림', tags || '[]', style || '']
+            [user_id, title, artist_name, image_url, description, rating, ai_summary, music_url, work_date || new Date().toISOString().split('T')[0].replace(/-/g, '.'), finalGenre, tags || '[]', style || '']
         );
         res.json({ message: '업로드 성공', id: result.lastID });
 
@@ -179,7 +180,8 @@ app.get('/users/:id', async (req, res) => {
 
 app.put('/posts/:id', upload.single('image'), async (req, res) => {
     const { id } = req.params;
-    const { title, artist_name, description, rating, ai_summary, music_url, work_date, category, tags, style } = req.body;
+    const { title, artist_name, description, rating, ai_summary, music_url, work_date, genre, category, tags, style } = req.body;
+    const finalGenre = genre || category || '그림';
 
     console.log('Updating Post:', id);
     console.log('Category:', category);
@@ -193,8 +195,8 @@ app.put('/posts/:id', upload.single('image'), async (req, res) => {
 
     try {
         await db.run(
-            `UPDATE Posts SET title=?, artist_name=?, image_url=?, description=?, rating=?, ai_summary=?, music_url=?, work_date=?, category=?, tags=?, style=? WHERE id=?`,
-            [title, artist_name, image_url, description, rating, ai_summary, music_url, work_date, category, tags || '[]', style || '', id]
+            `UPDATE Posts SET title=?, artist_name=?, image_url=?, description=?, rating=?, ai_summary=?, music_url=?, work_date=?, genre=?, tags=?, style=? WHERE id=?`,
+            [title, artist_name, image_url, description, rating, ai_summary, music_url, work_date, finalGenre, tags || '[]', style || '', id]
         );
         res.json({ message: '수정 성공' });
     } catch (e) {

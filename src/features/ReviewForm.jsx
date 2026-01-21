@@ -6,7 +6,7 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
     const [formData, setFormData] = useState({
         artist: '',
         title: '',
-        category: '그림',
+        genre: '그림',
         rating: 5,
         review: '',
         tags: [],
@@ -17,7 +17,7 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
     // UI state for "Unknown Artist"
     const [isUnknownArtist, setIsUnknownArtist] = useState(false);
 
-    const categories = ['그림', '조각', '사진', '판화', '기타'];
+    const genres = ['그림', '조각', '사진', '판화', '기타'];
 
     // Populate form when editing existing work
     useEffect(() => {
@@ -25,7 +25,7 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
             setFormData({
                 artist: existingWork.artist || existingWork.artist_name || '',
                 title: existingWork.title || '',
-                category: existingWork.category || '그림',
+                genre: existingWork.genre || existingWork.category || '그림',
                 rating: existingWork.rating || 5,
                 review: existingWork.review || existingWork.description || '',
                 tags: existingWork.tags || [],
@@ -42,7 +42,7 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
             setFormData({
                 artist: '',
                 title: '',
-                category: '그림',
+                genre: '그림',
                 rating: 5,
                 review: '',
                 tags: [],
@@ -216,21 +216,21 @@ const ReviewForm = ({ isOpen, onClose, imageData, onSave, existingWork = null })
                         />
                     </div>
 
-                    {/* 3. Category */}
+                    {/* 3. Genre */}
                     <div className="space-y-2">
-                        <label className="text-[11px] font-bold text-gray-400 tracking-widest uppercase px-1">Category</label>
+                        <label className="text-[11px] font-bold text-gray-400 tracking-widest uppercase px-1">Genre</label>
                         <div className="flex gap-2 flex-wrap">
-                            {categories.map((category) => (
+                            {genres.map((genre) => (
                                 <button
-                                    key={category}
+                                    key={genre}
                                     type="button"
-                                    onClick={() => setFormData({ ...formData, category })}
-                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${formData.category === category
+                                    onClick={() => setFormData({ ...formData, genre })}
+                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${formData.genre === genre
                                         ? 'bg-black text-white shadow-premium'
                                         : 'bg-white/50 text-gray-400 hover:text-black hover:bg-white'
                                         }`}
                                 >
-                                    {category}
+                                    {genre}
                                 </button>
                             ))}
                         </div>

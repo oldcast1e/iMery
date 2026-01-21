@@ -17,11 +17,11 @@ const SearchView = ({ works, initialTags = [], onTagsChange, onWorkClick, onEdit
         const matchesQuery = !searchQuery ||
             work.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (work.tags && work.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))) ||
-            (work.category && work.category.toLowerCase().includes(searchQuery.toLowerCase()));
+            (work.genre && work.genre.toLowerCase().includes(searchQuery.toLowerCase()));
 
         const matchesTags = selectedTags.length === 0 ||
             (work.tags && selectedTags.some(tag => work.tags.includes(tag))) ||
-            (work.category && selectedTags.includes(work.category));
+            (work.genre && selectedTags.includes(work.genre));
 
         return matchesQuery && matchesTags;
     });

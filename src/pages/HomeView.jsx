@@ -20,8 +20,8 @@ const HomeView = ({
     onSortChange,
     layout,
     onLayoutChange,
-    selectedCategory,
-    onCategoryChange,
+    selectedGenre,
+    onGenreChange,
     onViewChange,
     onNavigateBookmark // New Prop
 }) => {
@@ -48,7 +48,7 @@ const HomeView = ({
             filtered = filtered.filter(w =>
                 w.title.toLowerCase().includes(query) ||
                 w.artist.toLowerCase().includes(query) ||
-                (w.category && w.category.toLowerCase().includes(query)) ||
+                (w.genre && w.genre.toLowerCase().includes(query)) ||
                 (w.tags && w.tags.some(t => t.toLowerCase().includes(query)))
             );
         }
@@ -61,9 +61,9 @@ const HomeView = ({
             });
         }
 
-        // Category Filter
-        if (selectedCategory !== '전체') {
-            filtered = filtered.filter(w => w.category === selectedCategory);
+        // Genre Filter
+        if (selectedGenre !== '전체') {
+            filtered = filtered.filter(w => w.genre === selectedGenre);
         }
 
         // Sort
@@ -81,7 +81,7 @@ const HomeView = ({
         }
 
         return filtered;
-    }, [works, selectedRating, sortBy, searchQuery, selectedCategory]);
+    }, [works, selectedRating, sortBy, searchQuery, selectedGenre]);
 
     const displayWorks = useMemo(() => {
         if (layout === 'list') {
@@ -134,8 +134,8 @@ const HomeView = ({
 
             {/* Category Tabs */}
             <CategoryTabs
-                selectedCategory={selectedCategory}
-                onCategoryChange={onCategoryChange}
+                selectedGenre={selectedGenre}
+                onGenreChange={onGenreChange}
                 onTagClick={onTagClick}
             />
 

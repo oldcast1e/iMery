@@ -80,7 +80,7 @@ export const initDb = async () => {
             music_url TEXT,
             rating INT,
             work_date VARCHAR(50),
-            category VARCHAR(50),
+            genre VARCHAR(100),
             style VARCHAR(50),
             tags TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -160,9 +160,12 @@ export const initDb = async () => {
   try { await pool.execute("ALTER TABLE Users ADD COLUMN profile_image_url TEXT"); } catch (e) { }
   try { await pool.execute("ALTER TABLE Users ADD COLUMN bio TEXT"); } catch (e) { }
 
-  // Posts: add work_date, category
+  // Posts: add work_date, genre, style, tags
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN work_date VARCHAR(50)"); } catch (e) { }
-  try { await pool.execute("ALTER TABLE Posts ADD COLUMN category VARCHAR(50)"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE Posts RENAME COLUMN category TO genre"); } catch (e) {
+    // If rename fails, try adding genre if it doesn't exist
+    try { await pool.execute("ALTER TABLE Posts ADD COLUMN genre VARCHAR(100)"); } catch (e2) { }
+  }
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN style VARCHAR(50)"); } catch (e) { }
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN tags TEXT"); } catch (e) { }
 
