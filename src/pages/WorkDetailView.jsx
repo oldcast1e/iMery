@@ -70,9 +70,15 @@ const WorkDetailView = ({ work, onBack, user }) => {
                         <div className="flex justify-between items-start mb-2">
                             <div>
                                 <div className="flex gap-2 mb-2">
-                                    <span className="inline-block px-3 py-1 bg-black text-white text-xs font-bold rounded-full">
-                                        {work.genre || '그림'}
-                                    </span>
+                                    <div
+                                        className="bg-black text-white px-3 py-1.5 shadow-premium"
+                                        style={{
+                                            clipPath: 'polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%)',
+                                            paddingRight: '14px'
+                                        }}
+                                    >
+                                        <span className="text-xs font-bold uppercase tracking-wider">{work.genre || '그림'}</span>
+                                    </div>
                                     {work.style && (
                                         <span className="inline-block px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full border border-gray-200">
                                             {work.style}
