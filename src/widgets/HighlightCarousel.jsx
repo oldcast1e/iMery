@@ -30,9 +30,9 @@ const HighlightCarousel = ({ works = [], onWorkClick, onMoreClick }) => {
 
                             {/* [UI CHANGE] Tightened spacing and Butler font application */}
                             <div className="absolute bottom-1.5 left-1.5 right-1.5">
-                                {/* [UI CHANGE] Minimized vertical padding (py-1) to make the background stick closely to the text */}
-                                <div className="bg-white/60 backdrop-blur-md py-1 px-1.5 rounded-xl shadow-sm border border-white/20">
-                                    {/* [UI CHANGE] Removed top padding (pt-0) and bottom margin (mb-0.5) for max tightness */}
+                                {/* [UI CHANGE] Ultra-tight vertical padding (py-0.5) to make the background stick strictly to the text */}
+                                <div className="bg-white/60 backdrop-blur-md py-0.5 px-1.5 rounded-xl shadow-sm border border-white/20">
+                                    {/* [UI CHANGE] Tag Margin (mb-0.5) and Padding (px-0.5 pt-0 pb-0.5) for max tightness */}
                                     <div
                                         className="bg-black text-white inline-block px-0.5 pt-0 pb-0.5 mb-0.5 shadow-sm"
                                         style={{
