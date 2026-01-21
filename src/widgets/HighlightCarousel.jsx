@@ -7,9 +7,9 @@ const HighlightCarousel = ({ works = [], onWorkClick, onMoreClick }) => {
     return (
         <section className="mb-6">
             {/* Section Header */}
-            <div className="flex items-baseline gap-2 mb-4 px-4">
+            <div className="flex items-baseline gap-2 mb-4 px-4 font-serif">
                 <h2 className="text-2xl font-bold">저장된 작품</h2>
-                <span className="text-sm text-gray-500">목록</span>
+                <span className="text-sm text-gray-500 font-sans">목록</span>
             </div>
 
             {/* Carousel */}
@@ -30,9 +30,9 @@ const HighlightCarousel = ({ works = [], onWorkClick, onMoreClick }) => {
 
                             {/* Text Overlay with Tag-shaped Genre Badge */}
                             <div className="absolute bottom-2 left-2 right-2">
-                                <div className="bg-white/80 backdrop-blur-sm px-2 py-1 rounded-xl shadow-sm border border-white/20">
+                                <div className="bg-white/85 backdrop-blur-sm p-2 rounded-xl shadow-sm border border-white/20">
                                     <div
-                                        className="bg-black text-white inline-block px-1.5 py-0.5 mb-0.5 shadow-sm"
+                                        className="bg-black text-white inline-block px-1.5 py-0.5 mb-1 shadow-sm"
                                         style={{
                                             clipPath: 'polygon(0% 0%, 85% 0%, 100% 50%, 85% 100%, 0% 100%)',
                                             paddingRight: '6px'
@@ -40,7 +40,7 @@ const HighlightCarousel = ({ works = [], onWorkClick, onMoreClick }) => {
                                     >
                                         <p className="text-[7px] font-serif font-bold tracking-tight">{work.genre || '그림'}</p>
                                     </div>
-                                    <p className="text-[11px] font-serif font-bold text-black truncate leading-tight">{work.title}</p>
+                                    <p className="text-[13px] font-serif font-bold text-black truncate leading-tight">{work.title}</p>
                                 </div>
                             </div>
                         </div>
