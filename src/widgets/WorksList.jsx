@@ -189,7 +189,7 @@ const WorksList = ({
                                 />
 
                                 {layout !== 'large' && (
-                                    <div className="absolute bottom-0 left-0 right-0 glass-overlay p-3">
+                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/95 via-white/90 to-transparent backdrop-blur-sm p-3">
                                         <p className="text-sm font-bold text-black truncate">{work.title}</p>
                                         <p className="text-[10px] text-black/70 truncate">{work.artist}</p>
                                         {/* Tags Display (Mini) */}
