@@ -247,6 +247,20 @@ export default function UploadScreen() {
                         </View>
 
                         <View>
+                            <Text className="text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Rating</Text>
+                            <View className="flex-row gap-2">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <TouchableOpacity 
+                                        key={star} 
+                                        onPress={() => setFormData({ ...formData, rating: star })}
+                                    >
+                                        <Text style={{ fontSize: 24, color: star <= formData.rating ? '#FBBF24' : '#E5E7EB' }}>★</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        <View>
                             <Text className="text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Tags (Max 5)</Text>
                             <View className="flex-row flex-wrap gap-2">
                                 {predefinedTags.map(tag => (

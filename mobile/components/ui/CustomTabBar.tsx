@@ -20,10 +20,7 @@ export default function CustomTabBar() {
 
   const handlePress = (tab: any) => {
     if (tab.isAction) {
-      // Open Upload Modal or Action
-      // For now, simple alert or console
-      console.log("Open Add Action");
-      // If there was a modal route, router.push('/modal/upload')
+      router.push('/work/upload');
       return;
     }
     
@@ -130,7 +127,6 @@ const styles = StyleSheet.create({
   iconContainer: {
     padding: 12,
     borderRadius: 20,
-    transition: 'all 0.2s', // Native doesn't support transition prop directly but keeping logic clean
   },
   activeIconContainer: {
     backgroundColor: '#000',
@@ -159,10 +155,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
   },
 });
