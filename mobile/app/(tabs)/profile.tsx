@@ -1,37 +1,98 @@
-import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, FlatList, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+// Header is already provided by layout, but we need custom layout inside
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Settings, LogOut, UserPlus, Bookmark } from 'lucide-react-native';
+import { Settings, LogOut, Bookmark, Heart, MessageCircle, Camera } from 'lucide-react-native';
 import api from '@services/api';
+import { colors, shadowStyles, typography } from '../../constants/designSystem';
+import WorkCardGrid from '../../components/work/WorkCardGrid';
 
 export default function ProfileScreen() {
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
-    const [stats, setStats] = useState({ works: 0, likes: 0, bookmarks: 0 });
+    const [profile, setProfile] = useState<any>(null);
+    const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
+    const [activeTab, setActiveTab] = useState<'bookmarks' | 'likes' | 'comments'>('bookmarks');
+    
+    // Data List
+    const [listData, setListData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        loadProfile();
+        loadUser();
     }, []);
+
+    useEffect(() => {
+        if (user) {
+            loadProfile();
+            loadStats();
+            loadTabData();
+        }
+    }, [user, activeTab]);
+
+    const loadUser = async () => {
+        try {
+            const userJson = await AsyncStorage.getItem('imery-user');
+            if (userJson) setUser(JSON.parse(userJson));
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
     const loadProfile = async () => {
         try {
-            const userJson = await AsyncStorage.getItem('imery-user');
-            if (userJson) {
-                const userData = JSON.parse(userJson);
-                setUser(userData);
+            const data = await api.getUserProfile(user.user_id || user.id);
+            setProfile(data);
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
-                const allPosts = await api.getPosts();
-                const myWorks = allPosts.filter((p: any) => String(p.user_id) === String(userData.user_id || userData.id));
-                setStats({
-                    works: myWorks.length,
-                    likes: 0,
-                    bookmarks: 0
-                });
+    const loadStats = async () => {
+        try {
+            const data = await api.getUserStats(user.user_id || user.id);
+            setStats(data);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const loadTabData = async () => {
+        setLoading(true);
+        try {
+            const userId = user.user_id || user.id;
+            let data = [];
+            
+            if (activeTab === 'bookmarks') {
+                 data = await api.getBookmarks(userId);
+                 // Ensure data structure matches what UI expects. Assuming API returns array of posts
+            } else if (activeTab === 'likes') {
+                 try {
+                    const likedIds = await api.getMyLikes(userId);
+                    // Mobile Optimization: Fetch recent posts and filter, OR if api returns full objects use that.
+                    // Web fetchMyLikes returned IDs. 
+                    // If API returns IDs, we need to fetch posts.
+                    // Assuming getMyLikes returns IDs array mostly?
+                    // Let's check api.ts again. Web said: "We have getMyLikes but it returns IDs"
+                    // So we fetch all posts (expensive) or hopefully we have a better endpoint.
+                    // For MVP let's fetch all posts and filter.
+                    const allPosts = await api.getPosts();
+                    data = allPosts.filter((w: any) => likedIds.includes(w.id));
+                 } catch(e) {
+                     // If endpoint returns objects directly
+                     data = []; 
+                 }
+            } else if (activeTab === 'comments') {
+                 data = await api.getMyComments(userId);
             }
-        } catch (error) {
-            console.error(error);
+            setListData(data);
+        } catch (e) {
+            console.error(e);
+            setListData([]);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -53,76 +114,374 @@ export default function ProfileScreen() {
         );
     };
 
+    const getImageUrl = (url: string | null) => {
+        if (!url) return 'https://ui-avatars.com/api/?background=000&color=fff';
+        return url.startsWith('http') ? url : `http://localhost:3001${url}`; // Adjust for Android/iOS if needed via api config ideally
+    };
+
+    const renderHeader = () => (
+        <View style={styles.headerContainer}>
+            {/* Settings */}
+            <TouchableOpacity 
+                style={styles.settingsButton}
+                onPress={() => Alert.alert('Settings', 'Settings modal would open here')}
+            >
+                <Settings size={22} color={colors.gray400} />
+            </TouchableOpacity>
+
+            {/* Profile Image */}
+            <View style={styles.profileImageWrapper}>
+                <Image 
+                    source={{ uri: user ? getImageUrl(profile?.profile_image_url || user.profile_image_url || null) : undefined }}
+                    style={styles.profileImage}
+                />
+                <TouchableOpacity style={styles.editButton}>
+                    <Camera size={14} color="#FFF" />
+                </TouchableOpacity>
+            </View>
+
+            {/* Info */}
+            <Text style={styles.nickname}>{profile?.nickname || user?.nickname || 'Guest'}</Text>
+            <Text style={styles.bio}>{profile?.bio || user?.bio || "자기소개를 입력해주세요."}</Text>
+
+            {/* Stats */}
+            <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{stats.posts}</Text>
+                    <Text style={styles.statLabel}>WORKS</Text>
+                </View>
+                <View style={styles.statSeparator} />
+                <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{stats.followers}</Text>
+                    <Text style={styles.statLabel}>FOLLOWERS</Text>
+                </View>
+                <View style={styles.statSeparator} />
+                <View style={styles.statItem}>
+                    <Text style={styles.statValue}>{stats.following}</Text>
+                    <Text style={styles.statLabel}>FOLLOWING</Text>
+                </View>
+            </View>
+
+            {/* Tabs */}
+            <View style={styles.tabRow}>
+                <TouchableOpacity 
+                    style={[styles.tabButton, activeTab === 'bookmarks' && styles.activeTabButton]}
+                    onPress={() => setActiveTab('bookmarks')}
+                >
+                    <Bookmark size={20} color={activeTab === 'bookmarks' ? colors.primary : colors.gray300} />
+                    {activeTab === 'bookmarks' && <View style={styles.activeIndicator} />}
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                    style={[styles.tabButton, activeTab === 'likes' && styles.activeTabButton]}
+                    onPress={() => setActiveTab('likes')}
+                >
+                    <Heart size={20} color={activeTab === 'likes' ? colors.primary : colors.gray300} />
+                    {activeTab === 'likes' && <View style={styles.activeIndicator} />}
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                    style={[styles.tabButton, activeTab === 'comments' && styles.activeTabButton]}
+                    onPress={() => setActiveTab('comments')}
+                >
+                    <MessageCircle size={20} color={activeTab === 'comments' ? colors.primary : colors.gray300} />
+                    {activeTab === 'comments' && <View style={styles.activeIndicator} />}
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
+    const renderItem = ({ item }: { item: any }) => {
+        if (activeTab === 'comments') {
+            return (
+                <View style={styles.commentItem}>
+                    <View style={styles.commentContent}>
+                        <Text style={styles.commentText}>"{item.content}"</Text>
+                        <Text style={styles.dateText}>{new Date(item.created_at).toLocaleDateString()}</Text>
+                    </View>
+                </View>
+            );
+        }
+
+        // Works/Bookmarks (Reusing WorkCardGrid or making a list item similar to web)
+        // Web uses ActivityList which is a list row.
+        return (
+             <TouchableOpacity 
+                style={styles.listItem}
+                onPress={() => router.push({ pathname: '/work/[id]', params: { id: item.id || item.post_id } })}
+             >
+                <Image 
+                    source={{ uri: getImageUrl(item.image_url || item.thumbnail || item.post_image || item.image) }}
+                    style={styles.listImage}
+                />
+                <View style={styles.listContent}>
+                    <Text style={styles.itemTitle}>{item.title || item.post_title}</Text>
+                    <Text style={styles.itemArtist}>{item.artist || item.artist_name || 'Unknown Artist'}</Text>
+                    
+                    {/* Tags */}
+                    {item.tags && Array.isArray(item.tags) && (
+                        <View style={styles.tagRow}>
+                            {item.tags.slice(0, 3).map((tag: any, i: number) => (
+                                <View key={i} style={styles.tagBadge}>
+                                    <Text style={styles.tagText}>{typeof tag === 'object' ? tag.label : tag}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+
+                    <View style={styles.itemFooter}>
+                        {activeTab === 'bookmarks' && <Text style={styles.dateText}>Bookmarked: {new Date(item.bookmarked_at || Date.now()).toLocaleDateString()}</Text>}
+                        {activeTab === 'likes' && <Text style={styles.dateText}>Liked: {new Date(item.created_at).toLocaleDateString()}</Text>}
+                    </View>
+                </View>
+             </TouchableOpacity>
+        );
+    };
+
     if (!user) {
         return (
-            <SafeAreaView className="flex-1 justify-center items-center">
-                <ActivityIndicator />
-            </SafeAreaView>
-        )
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator color={colors.primary} />
+            </View>
+        );
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
-            <ScrollView>
-                <View className="items-center py-8 bg-white border-b border-gray-100">
-                    <View className="w-24 h-24 rounded-full bg-main/10 items-center justify-center mb-4">
-                        <Text className="text-4xl font-bold text-main">{user.nickname ? user.nickname[0] : 'U'}</Text>
+        <View style={styles.container}>
+             <FlatList
+                data={listData}
+                keyExtractor={(item, index) => String(item.id || index)}
+                renderItem={renderItem}
+                ListHeaderComponent={renderHeader}
+                contentContainerStyle={{ paddingBottom: 100 }}
+                ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>
+                            {activeTab === 'bookmarks' ? '북마크한 작품이 없습니다.' : 
+                             activeTab === 'likes' ? '좋아요한 작품이 없습니다.' : '작성한 댓글이 없습니다.'}
+                        </Text>
                     </View>
-                    <Text className="text-2xl font-bold text-gray-900">{user.nickname}</Text>
-                    <Text className="text-gray-500">{user.email}</Text>
-                </View>
-
-                <View className="flex-row justify-around py-6 border-b border-gray-100">
-                    <View className="items-center">
-                        <Text className="text-xl font-bold text-gray-900">{stats.works}</Text>
-                        <Text className="text-xs text-gray-500 uppercase tracking-wider">Works</Text>
+                }
+                ListFooterComponent={
+                    <View style={{ padding: 24 }}>
+                        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                            <LogOut size={16} color="#ef4444" />
+                            <Text style={styles.logoutText}>로그아웃</Text>
+                        </TouchableOpacity>
                     </View>
-                    <View className="items-center">
-                        <Text className="text-xl font-bold text-gray-900">{stats.likes}</Text>
-                        <Text className="text-xs text-gray-500 uppercase tracking-wider">Likes</Text>
-                    </View>
-                    <View className="items-center">
-                        <Text className="text-xl font-bold text-gray-900">{stats.bookmarks}</Text>
-                        <Text className="text-xs text-gray-500 uppercase tracking-wider">Saved</Text>
-                    </View>
-                </View>
-
-                <View className="p-4 space-y-2">
-                    <TouchableOpacity
-                        className="flex-row items-center p-4 bg-gray-50 rounded-xl"
-                        onPress={() => Alert.alert('Coming Soon', 'Friend management will be available shortly.')}
-                    >
-                        <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center mr-4">
-                            <UserPlus color="#23549D" size={20} />
-                        </View>
-                        <Text className="flex-1 text-base font-medium text-gray-900">Find Friends</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity className="flex-row items-center p-4 bg-gray-50 rounded-xl">
-                        <View className="w-10 h-10 rounded-full bg-purple-100 items-center justify-center mr-4">
-                            <Bookmark color="#9333ea" size={20} />
-                        </View>
-                        <Text className="flex-1 text-base font-medium text-gray-900">Saved Works</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity className="flex-row items-center p-4 bg-gray-50 rounded-xl">
-                        <View className="w-10 h-10 rounded-full bg-orange-100 items-center justify-center mr-4">
-                            <Settings color="#ea580c" size={20} />
-                        </View>
-                        <Text className="flex-1 text-base font-medium text-gray-900">Settings</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        className="flex-row items-center p-4 bg-red-50 rounded-xl mt-4"
-                        onPress={handleLogout}
-                    >
-                        <View className="w-10 h-10 rounded-full bg-red-100 items-center justify-center mr-4">
-                            <LogOut color="#ef4444" size={20} />
-                        </View>
-                        <Text className="flex-1 text-base font-medium text-red-600">Log Out</Text>
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
-        </SafeAreaView>
+                }
+             />
+        </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: colors.white,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    headerContainer: {
+        backgroundColor: '#fffbeb', // cream-50ish
+        paddingTop: 20,
+        paddingBottom: 0,
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        alignItems: 'center',
+        ...shadowStyles.apple,
+        marginBottom: 8,
+    },
+    settingsButton: {
+        position: 'absolute',
+        top: 10,
+        right: 20,
+        padding: 8,
+    },
+    profileImageWrapper: {
+        width: 100,
+        height: 100,
+        marginBottom: 16,
+        position: 'relative',
+    },
+    profileImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 50,
+        borderWidth: 2,
+        borderColor: colors.white,
+    },
+    editButton: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: colors.primary,
+        padding: 6,
+        borderRadius: 20,
+        ...shadowStyles.apple,
+    },
+    nickname: {
+        fontSize: 24,
+        fontFamily: typography.serif,
+        color: colors.primary,
+        marginBottom: 4,
+    },
+    bio: {
+        fontSize: 14,
+        fontFamily: typography.sans,
+        color: colors.gray500,
+        marginBottom: 24,
+        paddingHorizontal: 32,
+        textAlign: 'center',
+    },
+    statsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 24,
+        width: '100%',
+        justifyContent: 'center',
+    },
+    statItem: {
+        alignItems: 'center',
+        paddingHorizontal: 24,
+    },
+    statValue: {
+        fontSize: 20,
+        fontFamily: typography.sansBold,
+        color: colors.primary,
+    },
+    statLabel: {
+        fontSize: 10,
+        fontFamily: typography.sansBold,
+        color: colors.gray400,
+        marginTop: 4,
+    },
+    statSeparator: {
+        width: 1,
+        height: 24,
+        backgroundColor: colors.gray200,
+    },
+    tabRow: {
+        flexDirection: 'row',
+        width: '100%',
+        borderTopWidth: 1,
+        borderTopColor: colors.gray100,
+    },
+    tabButton: {
+        flex: 1,
+        alignItems: 'center',
+        paddingVertical: 16,
+        position: 'relative',
+    },
+    activeTabButton: {
+        // bg color if needed
+    },
+    activeIndicator: {
+        position: 'absolute',
+        bottom: 0,
+        width: 40,
+        height: 3,
+        backgroundColor: colors.primary,
+        borderRadius: 2,
+    },
+    // List Items
+    listItem: {
+        flexDirection: 'row',
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.gray100,
+        gap: 16,
+    },
+    listImage: {
+        width: 80,
+        height: 80,
+        borderRadius: 12,
+        backgroundColor: colors.gray200,
+    },
+    listContent: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    itemTitle: {
+        fontSize: 16,
+        fontFamily: typography.sansBold,
+        color: colors.primary,
+        marginBottom: 4,
+    },
+    itemArtist: {
+        fontSize: 12,
+        fontFamily: typography.sans,
+        color: colors.gray500,
+        marginBottom: 8,
+    },
+    tagRow: {
+        flexDirection: 'row',
+        gap: 6,
+        marginBottom: 6,
+    },
+    tagBadge: {
+        backgroundColor: colors.gray100,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: colors.gray200,
+    },
+    tagText: {
+        fontSize: 10,
+        fontFamily: typography.sansBold,
+        color: colors.gray400,
+    },
+    itemFooter: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+    },
+    dateText: {
+        fontSize: 10,
+        fontFamily: typography.sans,
+        color: colors.gray400,
+    },
+    // Comments
+    commentItem: {
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.gray100,
+    },
+    commentContent: {
+        backgroundColor: colors.gray100,
+        padding: 16,
+        borderRadius: 12,
+    },
+    commentText: {
+        fontSize: 14,
+        fontFamily: typography.sansMedium,
+        color: colors.primary,
+        marginBottom: 8,
+        fontStyle: 'italic',
+    },
+    emptyContainer: {
+        padding: 40,
+        alignItems: 'center',
+    },
+    emptyText: {
+        color: colors.gray400,
+        fontFamily: typography.sans,
+    },
+    logoutButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 12,
+        borderRadius: 12,
+        backgroundColor: '#fef2f2',
+        gap: 8,
+    },
+    logoutText: {
+        color: '#ef4444',
+        fontFamily: typography.sansBold,
+        fontSize: 14,
+    }
+});

@@ -35,90 +35,135 @@ api.interceptors.request.use(async (config) => {
     return config;
 });
 
+// Response Interceptor for Debugging
+api.interceptors.response.use(
+    response => response,
+    error => {
+        if (error.response) {
+             console.error(`[API Error] ${error.response.status} ${error.config.url}`, error.response.data);
+        } else {
+             console.error(`[API Error] Network/Unknown ${error.message}`);
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default {
     // Auth
-    login: async (email, password) => {
-        const { data } = await api.post('/auth/login', { email, password });
+    login: async (email: string, password: string) => {
+        const { data } = await api.post('/users/login', { username: email, password });
         return data;
     },
 
-    register: async (email, password, nickname) => {
-        const { data } = await api.post('/auth/register', { email, password, nickname });
+    register: async (email: string, password: string, nickname: string) => {
+        const { data } = await api.post('/users/signup', { username: email, password, nickname });
         return data;
     },
 
     // Posts
     getPosts: async () => {
         const { data } = await api.get('/posts/');
-        return data;
+        return data.posts;
     },
 
-    createPost: async (formData) => {
+    createPost: async (formData: any) => {
         const { data } = await api.post('/posts/', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
         return data;
     },
 
-    updatePost: async (id, formData) => {
+    updatePost: async (id: string | number, formData: any) => {
         const { data } = await api.put(`/posts/${id}`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
         return data;
     },
 
-    deletePost: async (id) => {
+    deletePost: async (id: string | number) => {
         const { data } = await api.delete(`/posts/${id}`);
         return data;
     },
 
     // AI Analysis
-    analyzePost: async (postId) => {
+    analyzePost: async (postId: string | number) => {
         const { data } = await api.post(`/analyze/${postId}`);
         return data;
     },
 
     // Social
-    searchUsers: async (nickname) => {
+    searchUsers: async (nickname: string) => {
         const { data } = await api.get(`/users/search?nickname=${nickname}`);
         return data;
     },
 
-    sendFriendRequest: async (requesterId, addresseeId) => {
+    sendFriendRequest: async (requesterId: string | number, addresseeId: string | number) => {
         const { data } = await api.post('/friends/request', { requesterId, addresseeId });
         return data;
     },
 
-    getFriends: async (userId) => {
+    getFriends: async (userId: string | number) => {
         const { data } = await api.get(`/friends/${userId}`);
         return data;
     },
 
-    respondToFriendRequest: async (friendshipId, status) => {
-        // Current API might use different endpoint, adhering to README instructions if available
-        // Assuming standard REST for now, verifying with backend later
+    respondToFriendRequest: async (friendshipId: string | number, status: string) => {
         const { data } = await api.post(`/friends/respond`, { friendshipId, status });
         return data;
     },
 
     // Interactions
-    toggleLike: async (postId, userId) => {
+    toggleLike: async (postId: string | number, userId: string | number) => {
         const { data } = await api.post('/likes/toggle', { postId, userId });
         return data;
     },
 
-    toggleBookmark: async (userId, postId) => {
+    toggleBookmark: async (userId: string | number, postId: string | number) => {
         const { data } = await api.post('/bookmarks/toggle', { userId, postId });
         return data;
     },
 
-    getComments: async (postId) => {
+    getComments: async (postId: string | number) => {
         const { data } = await api.get(`/comments/${postId}`);
         return data;
     },
 
-    addComment: async (postId, userId, content) => {
+    addComment: async (postId: string | number, userId: string | number, content: string) => {
         const { data } = await api.post('/comments/', { postId, userId, content });
+        return data;
+    },
+
+    // User Profile & Stats
+    getUserProfile: async (userId: string | number) => {
+        const { data } = await api.get(`/users/${userId}`);
+        return data;
+    },
+
+    updateProfile: async (userId: string | number, formData: any) => {
+        // FormData handling
+        const { data } = await api.put(`/users/profile`, formData, {
+             headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return data;
+    },
+
+    getUserStats: async (userId: string | number) => {
+        const { data } = await api.get(`/users/${userId}/stats`);
+        return data;
+    },
+
+    getBookmarks: async (userId: string | number) => {
+        const { data } = await api.get(`/users/${userId}/bookmarks`);
+        return data;
+    },
+
+    getMyLikes: async (userId: string | number) => {
+        const { data } = await api.get(`/users/${userId}/likes`);
+        return data;
+    },
+
+    getMyComments: async (userId: string | number) => {
+        const { data } = await api.get(`/users/${userId}/comments`);
         return data;
     },
 };

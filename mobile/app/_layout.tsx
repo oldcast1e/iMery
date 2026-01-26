@@ -16,35 +16,36 @@ cssInterop(SafeAreaView, { className: 'style' });
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+
+import { useAuthStore } from '../stores/authStore';
+
+// ... (imports remain)
+
+import { useFonts as useGoogleFonts, PlayfairDisplay_400Regular, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
+import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold } from '@expo-google-fonts/outfit';
+
+// ...
+
 export default function RootLayout() {
-  const [loaded] = useFonts({
+  const [fontsLoaded] = useGoogleFonts({
+    'PlayfairDisplay-Regular': PlayfairDisplay_400Regular,
+    'PlayfairDisplay-Bold': PlayfairDisplay_700Bold,
+    'Outfit-Regular': Outfit_400Regular,
+    'Outfit-Medium': Outfit_500Medium,
+    'Outfit-SemiBold': Outfit_600SemiBold,
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const { user, isLoading, checkAuth } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    // Check for user session
-    const checkAuth = async () => {
-      try {
-        const userJson = await AsyncStorage.getItem('imery-user');
-        if (userJson) {
-          setUser(JSON.parse(userJson));
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     checkAuth();
   }, []);
 
   useEffect(() => {
-    if (loaded && !isLoading) {
+    if (fontsLoaded && !isLoading) {
       SplashScreen.hideAsync();
 
       const inAuthGroup = segments[0] === '(auth)';
@@ -57,9 +58,9 @@ export default function RootLayout() {
         router.replace('/(tabs)');
       }
     }
-  }, [loaded, isLoading, user, segments]);
+  }, [fontsLoaded, isLoading, user, segments]);
 
-  if (!loaded || isLoading) {
+  if (!fontsLoaded || isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#23549D" />
