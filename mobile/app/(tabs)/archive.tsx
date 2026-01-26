@@ -128,7 +128,10 @@ function FeedTab({ user, works }: any) {
 
 function CalendarTab({ user, works }: any) {
     const [markedDates, setMarkedDates] = useState<any>({});
-    const myWorks = works.filter((w:any) => String(w.user_id) === String(user?.user_id || user?.id));
+    const myWorks = React.useMemo(() => 
+        works.filter((w:any) => String(w.user_id) === String(user?.user_id || user?.id)),
+        [works, user]
+    );
 
     useEffect(() => {
         const marks: any = {};

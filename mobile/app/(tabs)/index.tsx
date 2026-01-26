@@ -161,6 +161,7 @@ export default function HomeScreen() {
                             <ActionBar 
                                 searchQuery={searchQuery} 
                                 onSearchChange={setSearchQuery} 
+                                onBookmarkClick={() => router.push({ pathname: '/(tabs)/community', params: { openFolder: 'bookmark' } })}
                             />
 
                             <FilterChips 

@@ -65,22 +65,32 @@ export default function WorkCardList({ work, onPress, onBookmarkToggle, isBookma
             </View>
 
             {/* Actions */}
-            <View style={styles.actions}>
+            <View style={styles.actionsColumn}>
                 {onBookmarkToggle && (
                     <TouchableOpacity 
                         onPress={(e) => {
-                            // Stop propagation handled by parent usually, but here we just call handler
                              onBookmarkToggle(work.id);
                         }}
                         style={styles.actionBtn}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
                         <Bookmark
-                            size={18}
+                            size={20}
                             color={isBookmarked ? colors.primary : colors.gray400}
                             fill={isBookmarked ? colors.primary : 'transparent'}
                         />
                     </TouchableOpacity>
                 )}
+                
+                {/* Edit/Delete Buttons (Horizontal below Bookmark) */}
+                <View style={styles.editDeleteRow}>
+                     <TouchableOpacity style={styles.miniActionBtn}>
+                        <Text style={styles.miniActionText}>✎</Text>
+                     </TouchableOpacity>
+                     <TouchableOpacity style={styles.miniActionBtn}>
+                        <Text style={styles.miniActionText}>🗑️</Text>
+                     </TouchableOpacity>
+                </View>
             </View>
         </TouchableOpacity>
     );
@@ -169,5 +179,22 @@ const styles = StyleSheet.create({
     },
     actionBtn: {
         padding: 4,
+        alignSelf: 'flex-end',
     },
+    actionsColumn: {
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        paddingVertical: 4,
+    },
+    editDeleteRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginTop: 8,
+    },
+    miniActionBtn: {
+        padding: 4,
+    },
+    miniActionText: {
+        fontSize: 14,
+    }
 });

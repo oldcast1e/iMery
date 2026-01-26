@@ -9,9 +9,25 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, shadowStyles, typography } from '../../constants/designSystem';
 import WorkCardGrid from '../../components/work/WorkCardGrid';
 
+import { useLocalSearchParams } from 'expo-router';
+
 export default function WorksScreen() {
     const router = useRouter();
+    const params = useLocalSearchParams();
     const [works, setWorks] = useState<any[]>([]);
+    
+    // ... state ...
+
+    useEffect(() => {
+        if (params.openFolder === 'bookmark') {
+             // We need to wait for data load or just set selectedFolder type 'bookmark'
+             // Ideally we load works first.
+             // For now, let's just trigger it if works loaded or simple timeout
+             if(works.length > 0) {
+                 handleFolderClick({ name: '북마크', works: works.filter(w => bookmarkedIds.includes(w.id)), type: 'bookmark' });
+             }
+        }
+    }, [params.openFolder, works]); // Run when works load or param changes
     const [folders, setFolders] = useState<any[]>([]); // Mock folders for now
     const [selectedFolder, setSelectedFolder] = useState<any>(null);
     const [bookmarkedIds, setBookmarkedIds] = useState<number[]>([]);
