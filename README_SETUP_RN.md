@@ -286,90 +286,82 @@ npx expo run:android
 
 ## 7. 프로젝트 구조 (Project Structure)
 
-### 7.1 v2.0 디렉토리 구조
+### 7.1 v2.0 디렉토리 구조 (Feature-Sliced Design)
+
+이 프로젝트는 확장성과 유지보수를 위해 **Feature-Sliced Design (FSD)** 아키텍처를 채택했습니다.
 
 ```
-iMery/ (v.2.0 브랜치)
-├── app/                        # Expo Router 기반 앱 (NEW)
-│   ├── (auth)/                # 인증 화면 그룹
-│   │   ├── login.tsx
-│   │   └── signup.tsx
+iMery/mobile/
+├── app/                        # Expo Router (진입점)
+│   ├── (auth)/                # 인증 관련 라우트
+│   ├── (tabs)/                # 메인 탭바 라우트
+│   ├── work/                  # 작품 관련 라우트
+│   └── _layout.tsx            # 루트 레이아웃 & Providers
+│
+├── src/                        # 비즈니스 로직 및 UI (FSD Layers)
+│   ├── pages/                 # 페이지 레이어 (라우트와 1:1 매핑)
+│   │   ├── auth/              # 로그인, 회원가입 화면
+│   │   ├── home/              # 홈 화면
+│   │   ├── work/              # 작품 상세, 업로드 화면
+│   │   ├── community/         # 커뮤니티 화면
+│   │   ├── archive/           # 아카이브 화면
+│   │   └── profile/           # 프로필 화면
 │   │
-│   ├── (tabs)/                # 메인 탭 네비게이션
-│   │   ├── _layout.tsx        # 탭 라우터 설정
-│   │   ├── index.tsx          # 홈 (나의 작품)
-│   │   ├── archive.tsx        # 아카이브 (캘린더)
-│   │   ├── community.tsx      # 커뮤니티 (친구 피드)
-│   │   └── profile.tsx        # 프로필 (마이)
+│   ├── widgets/               # 화면을 구성하는 큰 단위 컴포넌트
+│   │   ├── WorkList.tsx       # 작품 목록 피드 (준비중)
+│   │   └── CommentSection.tsx # 댓글 영역 (준비중)
 │   │
-│   ├── work/                  # 작품 관련 화면
-│   │   ├── [id].tsx           # 작품 상세 (동적 라우팅)
-│   │   └── day.tsx            # 특정 날짜 작품 목록
+│   ├── features/              # 특정 기능 단위 (상태+로직+UI)
+│   │   ├── auth/              # 인증 폼 (LoginForm)
+│   │   └── upload/            # 업로드 프로세스
 │   │
-│   ├── _layout.tsx            # 루트 레이아웃 (인증 가드)
-│   └── +not-found.tsx         # 404 화면
-│
-├── components/                 # 재사용 컴포넌트 (NEW)
-│   ├── ui/                    # UI 기본 컴포넌트
-│   │   ├── Button.tsx
-│   │   ├── Input.tsx
-│   │   ├── Card.tsx
-│   │   └── Modal.tsx
+│   ├── entities/              # 비즈니스 데이터 모델
+│   │   ├── user/              # 사용자 모델
+│   │   └── work/              # 작품 모델 (WorkCard)
 │   │
-│   ├── WorkCard.tsx           # 작품 카드
-│   ├── WorksList.tsx          # 작품 목록 (FlatList)
-│   ├── AudioPlayer.tsx        # 음악 플레이어
-│   ├── TagSelector.tsx        # 태그 선택기
-│   ├── FilterBar.tsx          # 필터 바
-│   └── ImageUploadModal.tsx   # 이미지 업로드 모달
+│   └── shared/                # 공용 유틸리티 및 설정
+│       ├── api/               # API 클라이언트 (axios)
+│       ├── ui/                # 아토믹 디자인 컴포넌트 (Button, Input)
+│       ├── lib/               # 헬퍼 함수
+│       └── config/            # 상수 및 환경설정
 │
-├── services/                   # API 및 외부 서비스 (NEW)
-│   ├── api.ts                 # REST API 클라이언트
-│   ├── storage.ts             # AsyncStorage 래퍼
-│   └── analytics.ts           # 분석 서비스 (선택)
-│
-├── stores/                     # 상태 관리 (NEW)
-│   ├── authStore.ts           # 인증 상태 (Zustand)
-│   ├── worksStore.ts          # 작품 목록 상태
-│   └── notificationStore.ts   # 알림 상태
-│
-├── constants/                  # 상수 및 설정
-│   ├── Colors.ts              # 색상 테마
-│   ├── Tags.ts                # 태그 카테고리 (기존과 동일)
-│   └── Config.ts              # API URL 등
-│
-├── utils/                      # 유틸리티 함수
-│   ├── imageCompression.ts
-│   ├── dateFormat.ts
-│   └── validators.ts
-│
-├── hooks/                      # 커스텀 React 훅
-│   ├── useAuth.ts
-│   ├── useWorks.ts
-│   └── useDebounce.ts
-│
-├── assets/                     # 정적 자산
-│   ├── images/
-│   ├── fonts/
-│   └── icons/
-│
-├── server/                     # 백엔드 (v1.5와 동일)
-│   ├── index.js
-│   ├── db.js
-│   ├── .env
-│   └── ...
-│
-├── app.json                    # Expo 설정 (NEW)
-├── package.json                # RN 의존성 (NEW)
-├── tsconfig.json               # TypeScript 설정 (NEW)
-├── tailwind.config.js          # NativeWind 설정 (NEW)
-├── metro.config.js             # Metro 번들러 설정
-├── babel.config.js             # Babel 설정
-│
-├── README.md                   # 프로젝트 개요
-├── README_SETUP_RN.md          # 본 문서 (NEW)
-└── README_SETUP.md             # v1.5 웹 버전 설정 가이드 (레거시)
+├── assets/                     # 정적 자산 (이미지, 폰트)
+└── ...config files            # 설정 파일들 (babel, tailwind, tsconfig)
 ```
+
+## 사용 방법 (Usage Guide)
+
+### 1단계: 설치 및 실행
+```bash
+cd mobile
+npm install
+npx expo start
+```
+
+### 2단계: 기능별 가이드
+
+#### 🎨 작품 업로드
+1. 하단 **+ 버튼**을 탭합니다.
+2. **카메라** 또는 **갤러리**를 선택하여 이미지를 가져옵니다.
+3. 작품 정보를 입력합니다 (제목, 작가, 장르, 태그 등).
+4. **저장**을 누르면 서버에 업로드되고 홈 화면에 반영됩니다.
+
+#### 🤖 AI 도슨트 분석
+1. 작품 상세 화면으로 이동합니다.
+2. **"AI 분석 받아보기"** 버튼을 탭합니다.
+3. 약 90초 후, AI가 분석한 **화풍(Style)** 그래프와 **감상평(Summary)**이 표시됩니다.
+4. 분석 결과에 따라 **AI 작곡 음악**이 자동 재생됩니다.
+
+#### 🗓 아카이브 (캘린더)
+1. **Archive** 탭으로 이동합니다.
+2. 캘린더에서 점이 찍힌 날짜를 선택하여 과거의 감상 기록을 확인합니다.
+
+#### 👥 커뮤니티
+1. **Community** 탭으로 이동합니다.
+2. 다른 사용자들이 올린 작품을 감상하고 댓글을 남길 수 있습니다.
+
+---
+
 
 ### 7.2 v1.5 (웹) vs v2.0 (RN) 구조 비교
 
