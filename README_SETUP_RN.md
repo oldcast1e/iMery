@@ -286,45 +286,28 @@ npx expo run:android
 
 ## 7. 프로젝트 구조 (Project Structure)
 
-### 7.1 v2.0 디렉토리 구조 (Feature-Sliced Design)
+### 7.1 v2.0 디렉토리 구조 (Standard Expo Architecture)
 
-이 프로젝트는 확장성과 유지보수를 위해 **Feature-Sliced Design (FSD)** 아키텍처를 채택했습니다.
+이 프로젝트는 React Native 및 Expo Router의 표준 디렉토리 구조를 따릅니다. **`app/` 디렉토리가 라우팅과 비즈니스 로직의 중심**이 되며, React 웹 개발 방식(`src/` 중심)을 탈피하여 네이티브 앱 개발 표준을 준수합니다.
 
 ```
 iMery/mobile/
-├── app/                        # Expo Router (진입점)
-│   ├── (auth)/                # 인증 관련 라우트
-│   ├── (tabs)/                # 메인 탭바 라우트
-│   ├── work/                  # 작품 관련 라우트
+├── app/                        # Expo Router (페이지 & 비즈니스 로직)
+│   ├── (auth)/                # 인증 관련 화면 (Login, Signup)
+│   ├── (tabs)/                # 메인 탭 화면 (Home, Archive, Community, Profile)
+│   ├── work/                  # 작품 관련 화면 (Detail, Upload)
 │   └── _layout.tsx            # 루트 레이아웃 & Providers
 │
-├── src/                        # 비즈니스 로직 및 UI (FSD Layers)
-│   ├── pages/                 # 페이지 레이어 (라우트와 1:1 매핑)
-│   │   ├── auth/              # 로그인, 회원가입 화면
-│   │   ├── home/              # 홈 화면
-│   │   ├── work/              # 작품 상세, 업로드 화면
-│   │   ├── community/         # 커뮤니티 화면
-│   │   ├── archive/           # 아카이브 화면
-│   │   └── profile/           # 프로필 화면
-│   │
-│   ├── widgets/               # 화면을 구성하는 큰 단위 컴포넌트
-│   │   ├── WorkList.tsx       # 작품 목록 피드 (준비중)
-│   │   └── CommentSection.tsx # 댓글 영역 (준비중)
-│   │
-│   ├── features/              # 특정 기능 단위 (상태+로직+UI)
-│   │   ├── auth/              # 인증 폼 (LoginForm)
-│   │   └── upload/            # 업로드 프로세스
-│   │
-│   ├── entities/              # 비즈니스 데이터 모델
-│   │   ├── user/              # 사용자 모델
-│   │   └── work/              # 작품 모델 (WorkCard)
-│   │
-│   └── shared/                # 공용 유틸리티 및 설정
-│       ├── api/               # API 클라이언트 (axios)
-│       ├── ui/                # 아토믹 디자인 컴포넌트 (Button, Input)
-│       ├── lib/               # 헬퍼 함수
-│       └── config/            # 상수 및 환경설정
+├── components/                 # 재사용 가능한 UI 컴포넌트
+│   ├── ui/                    # 버튼, 인풋 등 기본 요소
+│   └── work/                  # 작품 관련 컴포넌트 (WorkCard 등)
 │
+├── services/                   # API 통신 및 외부 서비스
+│   └── api.ts                 # 백엔드 API 클라이언트
+│
+├── hooks/                      # 커스텀 훅 (useAuth, useWorks 등)
+├── constants/                  # 앱 전체 상수 (Colors, Config)
+├── utils/                      # 유틸리티 함수
 ├── assets/                     # 정적 자산 (이미지, 폰트)
 └── ...config files            # 설정 파일들 (babel, tailwind, tsconfig)
 ```
@@ -338,27 +321,10 @@ npm install
 npx expo start
 ```
 
-### 2단계: 기능별 가이드
-
-#### 🎨 작품 업로드
-1. 하단 **+ 버튼**을 탭합니다.
-2. **카메라** 또는 **갤러리**를 선택하여 이미지를 가져옵니다.
-3. 작품 정보를 입력합니다 (제목, 작가, 장르, 태그 등).
-4. **저장**을 누르면 서버에 업로드되고 홈 화면에 반영됩니다.
-
-#### 🤖 AI 도슨트 분석
-1. 작품 상세 화면으로 이동합니다.
-2. **"AI 분석 받아보기"** 버튼을 탭합니다.
-3. 약 90초 후, AI가 분석한 **화풍(Style)** 그래프와 **감상평(Summary)**이 표시됩니다.
-4. 분석 결과에 따라 **AI 작곡 음악**이 자동 재생됩니다.
-
-#### 🗓 아카이브 (캘린더)
-1. **Archive** 탭으로 이동합니다.
-2. 캘린더에서 점이 찍힌 날짜를 선택하여 과거의 감상 기록을 확인합니다.
-
-#### 👥 커뮤니티
-1. **Community** 탭으로 이동합니다.
-2. 다른 사용자들이 올린 작품을 감상하고 댓글을 남길 수 있습니다.
+### 2단계: 개발 가이드
+- **새로운 화면 추가**: `app/` 폴더 내에 `.tsx` 파일을 생성하면 자동으로 라우트가 생성됩니다. 비즈니스 로직은 해당 파일 내에 바로 작성하거나, 복잡할 경우 커스텀 훅으로 분리합니다.
+- **공통 컴포넌트**: 여러 화면에서 쓰이는 UI는 `components/`에 작성합니다.
+- **API 호출**: `@services/api` 모듈을 import하여 사용합니다.
 
 ---
 

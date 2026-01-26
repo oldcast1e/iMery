@@ -7,6 +7,11 @@ import 'react-native-reanimated';
 import '../global.css'; // Import global CSS for NativeWind
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, ActivityIndicator } from 'react-native';
+import { cssInterop } from 'nativewind';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Configure NativeWind for 3rd party components
+cssInterop(SafeAreaView, { className: 'style' });
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

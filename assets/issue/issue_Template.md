@@ -6,6 +6,7 @@
 - **중요도**: High / Medium / Low
 - **상태**: Open
 - **저장 형식**: issue_MMDD_hhmm_이슈명.md
+- **이슈 저장 경로**: /Users/apple/Desktop/React/iMery/assets/issue
 
 ## 2. 환경 정보 (Environment)
 | 항목 | 내용 |
