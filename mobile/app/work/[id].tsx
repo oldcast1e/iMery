@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, TextInput, StyleSheet, Dimensions, Platform } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, TextInput, StyleSheet, Dimensions, Platform, Animated, Easing } from 'react-native';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Share2, Clock, Music, Pause, Play, Sparkles, Send, Tag } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,14 +31,46 @@ export default function WorkDetailScreen() {
     const [commentText, setCommentText] = useState('');
 
     // Clean up sound on unmount
+    // Animation Values
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+
+    // Music Animation Loop
     useEffect(() => {
-        return () => {
-            if (soundRef.current) {
-                console.log('Unloading sound on unmount');
-                soundRef.current.unloadAsync();
-            }
-        };
-    }, []);
+        if (isPlaying) {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, {
+                        toValue: 1.2,
+                        duration: 800,
+                        useNativeDriver: true,
+                        easing: Easing.inOut(Easing.ease)
+                    }),
+                    Animated.timing(pulseAnim, {
+                        toValue: 1,
+                        duration: 800,
+                        useNativeDriver: true,
+                         easing: Easing.inOut(Easing.ease)
+                    })
+                ])
+            ).start();
+        } else {
+            pulseAnim.setValue(1); // Reset
+            pulseAnim.stopAnimation();
+        }
+    }, [isPlaying]);
+
+    // Audio Cleanup on Leave (Focus Loss)
+    useFocusEffect(
+        React.useCallback(() => {
+            return () => {
+                if (soundRef.current) {
+                    console.log('Unloading sound on blur');
+                    soundRef.current.unloadAsync(); // Stop and unload
+                    setIsPlaying(false);
+                }
+            };
+        }, [])
+    );
 
     // Load Data
     useEffect(() => {
@@ -190,10 +222,22 @@ export default function WorkDetailScreen() {
     // Determine active display data (Analysis vs Default)
     const effectiveData = analysisData || work;
     
-    // Parse Tags
-    const tags = Array.isArray(work.tags) 
-        ? work.tags.map((t: any) => typeof t === 'object' ? t.label : t) 
-        : [];
+    // Parse Tags Robustly
+    let tags: string[] = [];
+    try {
+        if (Array.isArray(work.tags)) {
+            tags = work.tags.map((t: any) => typeof t === 'object' ? t.label : t);
+        } else if (typeof work.tags === 'string') {
+            // Handle "[ "tag1", "tag2" ]" string from DB
+            const parsed = JSON.parse(work.tags);
+            if (Array.isArray(parsed)) {
+                tags = parsed.map((t: any) => typeof t === 'object' ? t.label : t);
+            }
+        }
+    } catch (e) {
+        console.log('Tag parse error', e);
+        tags = [];
+    }
 
     return (
         <View style={styles.container}>
@@ -208,8 +252,12 @@ export default function WorkDetailScreen() {
                     colors={['rgba(0,0,0,0.6)', 'transparent']}
                     style={[styles.headerGradient, { paddingTop: insets.top }]}
                 >
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <ArrowLeft color={colors.white} size={24} />
+                    <TouchableOpacity 
+                        onPress={() => router.back()} 
+                        style={styles.backButton}
+                        hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                    >
+                        <ArrowLeft color={colors.white} size={28} />
                     </TouchableOpacity>
                 </LinearGradient>
             </View>
@@ -239,18 +287,21 @@ export default function WorkDetailScreen() {
                         
                         {/* Audio & Share */}
                         <View style={styles.actionButtons}>
-                             <TouchableOpacity
+                            <TouchableOpacity
                                 onPress={togglePlayback}
-                                style={[
-                                    styles.circleButton, 
-                                    isPlaying && styles.activeCircleButton
-                                ]}
+                                activeOpacity={0.8}
                             >
-                                {isPlaying ? (
-                                    <Pause size={18} color={isPlaying ? colors.white : colors.primary} />
-                                ) : (
-                                    <Music size={18} color={work.music_url ? "#4f46e5" : colors.gray400} />
-                                )}
+                                <Animated.View style={[
+                                    styles.circleButton, 
+                                    isPlaying && styles.activeCircleButton,
+                                    { transform: [{ scale: pulseAnim }] }
+                                ]}>
+                                    {isPlaying ? (
+                                        <Pause size={18} color={isPlaying ? colors.white : colors.primary} />
+                                    ) : (
+                                        <Music size={18} color={work.music_url ? "#4f46e5" : colors.gray400} />
+                                    )}
+                                </Animated.View>
                             </TouchableOpacity>
                              <TouchableOpacity onPress={handleShare} style={styles.circleButton}>
                                 <Share2 size={18} color={colors.gray500} />
@@ -267,12 +318,12 @@ export default function WorkDetailScreen() {
                         </Text>
                     </View>
                     
-                     {/* Tags */}
+                     {/* Tags - Moved Here & Styled */}
                     {tags.length > 0 && (
                         <View style={styles.tagRow}>
                             {tags.map((tag: string, i: number) => (
                                 <View key={i} style={styles.tagBadge}>
-                                    <Tag size={10} color={colors.gray400} style={{marginRight:4}} />
+                                    <Tag size={12} color={colors.gray400} style={{marginRight:4}} />
                                     <Text style={styles.tagText}>{tag}</Text>
                                 </View>
                             ))}

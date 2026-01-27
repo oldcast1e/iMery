@@ -1,12 +1,21 @@
 import { Platform } from 'react-native';
 
-// Hardcoded for now based on api.ts
-// In a real app, this should share the config with api.ts or env variables
-const API_BASE_URL = Platform.select({
-    ios: 'http://localhost:3001',
-    android: 'http://10.0.2.2:3001',
-    default: 'http://localhost:3001',
-});
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+
+const debuggerHost = Constants.expoConfig?.hostUri;
+const lanIp = debuggerHost?.split(':')[0] || 'localhost';
+
+const API_BASE_URL = (() => {
+    if (!Device.isDevice) {
+        return Platform.select({
+            android: 'http://10.0.2.2:3001',
+            default: 'http://localhost:3001',
+        });
+    } else {
+        return `http://${lanIp}:3001`;
+    }
+})();
 
 export const getImageUrl = (path: string | undefined | null): string => {
     if (!path) return 'https://via.placeholder.com/150';

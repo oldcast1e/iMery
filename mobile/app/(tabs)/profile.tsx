@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, FlatList, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 // Header is already provided by layout, but we need custom layout inside
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,6 +25,12 @@ export default function ProfileScreen() {
     useEffect(() => {
         loadUser();
     }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadUser();
+        }, [])
+    );
 
     useEffect(() => {
         if (user) {
@@ -168,7 +176,7 @@ export default function ProfileScreen() {
                     style={[styles.tabButton, activeTab === 'bookmarks' && styles.activeTabButton]}
                     onPress={() => setActiveTab('bookmarks')}
                 >
-                    <Bookmark size={20} color={activeTab === 'bookmarks' ? colors.primary : colors.gray300} />
+                    <Bookmark size={20} color={activeTab === 'bookmarks' ? colors.primary : colors.gray400} />
                     {activeTab === 'bookmarks' && <View style={styles.activeIndicator} />}
                 </TouchableOpacity>
 
@@ -176,7 +184,7 @@ export default function ProfileScreen() {
                     style={[styles.tabButton, activeTab === 'likes' && styles.activeTabButton]}
                     onPress={() => setActiveTab('likes')}
                 >
-                    <Heart size={20} color={activeTab === 'likes' ? colors.primary : colors.gray300} />
+                    <Heart size={20} color={activeTab === 'likes' ? colors.primary : colors.gray400} />
                     {activeTab === 'likes' && <View style={styles.activeIndicator} />}
                 </TouchableOpacity>
 
@@ -184,7 +192,7 @@ export default function ProfileScreen() {
                     style={[styles.tabButton, activeTab === 'comments' && styles.activeTabButton]}
                     onPress={() => setActiveTab('comments')}
                 >
-                    <MessageCircle size={20} color={activeTab === 'comments' ? colors.primary : colors.gray300} />
+                    <MessageCircle size={20} color={activeTab === 'comments' ? colors.primary : colors.gray400} />
                     {activeTab === 'comments' && <View style={styles.activeIndicator} />}
                 </TouchableOpacity>
             </View>

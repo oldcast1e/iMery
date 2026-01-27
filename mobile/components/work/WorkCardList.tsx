@@ -1,17 +1,37 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { Music, Star, Bookmark } from 'lucide-react-native';
+import { Music, Star, Bookmark, Pencil, Trash2 } from 'lucide-react-native';
 import { colors, shadowStyles, typography } from '../../constants/designSystem';
 import { getImageUrl } from '../../utils/imageHelper';
 
 // ...
 
-export default function WorkCardList({ work, onPress, onBookmarkToggle, isBookmarked }: Props) {
+// Define Props
+interface Props {
+  work: any;
+  onPress: () => void;
+  onBookmarkToggle?: (id: any) => void;
+  isBookmarked?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}
+
+export default function WorkCardList({ work, onPress, onBookmarkToggle, isBookmarked, onEdit, onDelete }: Props) {
     const imageUrl = getImageUrl(work.image_url || work.thumbnail || work.image);
      // Handle tag parsing broadly
     const displayTags = Array.isArray(work.tags) 
-        ? work.tags.map(t => typeof t === 'object' ? t.label : t) 
+        ? work.tags.map((t: any) => typeof t === 'object' ? t.label : t) 
         : [];
+// ...
+                {displayTags.length > 0 && (
+                    <View style={styles.tagRow}>
+                        {displayTags.slice(0, 3).map((tag: any, idx: number) => (
+                            <View key={idx} style={styles.tagBadge}>
+                                <Text style={styles.tagText}>{tag}</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
 
     return (
         <TouchableOpacity
@@ -35,15 +55,15 @@ export default function WorkCardList({ work, onPress, onBookmarkToggle, isBookma
                 </View>
 
                 <View style={styles.metaRow}>
-                    <Text style={[styles.metaText, styles.artistText]}>{work.artist || 'Unknown'}</Text>
+                    <Text style={[styles.metaText, styles.artistText]}>{work.artist_name || work.artist || 'Unknown'}</Text>
                     <Text style={styles.dot}>•</Text>
-                    <Text style={styles.metaText}>{work.date || '2024.01.01'}</Text>
+                    <Text style={styles.metaText}>{work.date || work.work_date || '2024.01.01'}</Text>
                 </View>
 
                 {/* Tags */}
                 {displayTags.length > 0 && (
                     <View style={styles.tagRow}>
-                        {displayTags.slice(0, 3).map((tag, idx) => (
+                        {displayTags.slice(0, 3).map((tag: any, idx: number) => (
                             <View key={idx} style={styles.tagBadge}>
                                 <Text style={styles.tagText}>{tag}</Text>
                             </View>
@@ -84,12 +104,16 @@ export default function WorkCardList({ work, onPress, onBookmarkToggle, isBookma
                 
                 {/* Edit/Delete Buttons (Horizontal below Bookmark) */}
                 <View style={styles.editDeleteRow}>
-                     <TouchableOpacity style={styles.miniActionBtn}>
-                        <Text style={styles.miniActionText}>✎</Text>
-                     </TouchableOpacity>
-                     <TouchableOpacity style={styles.miniActionBtn}>
-                        <Text style={styles.miniActionText}>🗑️</Text>
-                     </TouchableOpacity>
+                     {onEdit && (
+                         <TouchableOpacity style={styles.miniActionBtn} onPress={onEdit}>
+                            <Pencil size={18} color={colors.gray400} />
+                         </TouchableOpacity>
+                     )}
+                     {onDelete && (
+                         <TouchableOpacity style={styles.miniActionBtn} onPress={onDelete}>
+                            <Trash2 size={18} color={colors.gray400} />
+                         </TouchableOpacity>
+                     )}
                 </View>
             </View>
         </TouchableOpacity>

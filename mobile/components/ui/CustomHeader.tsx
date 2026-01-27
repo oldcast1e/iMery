@@ -1,10 +1,13 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, SafeAreaView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Platform, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Bell, Globe } from 'lucide-react-native';
 
 export default function CustomHeader() {
+    const router = useRouter();
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
             <View style={styles.container}>
                 {/* Logo Section */}
                 <View style={styles.logoSection}>
@@ -27,7 +30,7 @@ export default function CustomHeader() {
                     </TouchableOpacity>
 
                     {/* Notification */}
-                    <TouchableOpacity style={styles.notifButton}>
+                    <TouchableOpacity style={styles.notifButton} onPress={() => router.push('/notifications')}>
                         <Bell size={22} color="#1a1a1a" />
                         <View style={styles.badge} />
                     </TouchableOpacity>
@@ -42,7 +45,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6', // border-gray-100
-        paddingTop: Platform.OS === 'android' ? 40 : 0,
     },
     container: {
         flexDirection: 'row',

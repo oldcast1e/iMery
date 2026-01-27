@@ -1,25 +1,28 @@
 import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, Alert, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
-import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Camera, Image as ImageIcon, X, ArrowLeft } from 'lucide-react-native';
+import { Camera, Image as ImageIcon, ArrowLeft } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import api from '@services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, shadowStyles } from '../../constants/designSystem';
+import { getImageUrl } from '../../utils/imageHelper';
+import { colors } from '../../constants/designSystem';
 
-export default function UploadScreen() {
+export default function EditWorkScreen() {
     const router = useRouter();
-    const [step, setStep] = useState(1);
+    const { id } = useLocalSearchParams();
+    const workId = Array.isArray(id) ? id[0] : id;
     const [imageUri, setImageUri] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    
     const [formData, setFormData] = useState({
         title: '',
         artist: '',
         isUnknownArtist: false,
         style: '',
-        date: new Date().toISOString().split('T')[0],
+        date: '',
         genre: '그림',
         rating: 5,
         review: '',
@@ -29,35 +32,52 @@ export default function UploadScreen() {
     const genres = ['그림', '조각', '사진', '판화', '기타'];
     const predefinedTags = ['유화', '수채화', '풍경', '인물', '추상', '모던', '고전'];
 
-    const pickImage = async (useCamera: boolean) => {
-        const { status } = useCamera
-            ? await ImagePicker.requestCameraPermissionsAsync()
-            : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    useEffect(() => {
+        if (workId) loadWork();
+    }, [workId]);
 
-        if (status !== 'granted') {
-            Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to make this work!');
-            return;
+    const loadWork = async () => {
+        try {
+            const data = await api.getPost(workId); 
+            // Ensure data structure
+            const work = data; 
+            
+            setImageUri(getImageUrl(work.image_url));
+            setFormData({
+                title: work.title,
+                artist: work.artist_name || work.artist,
+                isUnknownArtist: work.artist_name === '작가 미상',
+                style: work.style || '',
+                date: work.work_date || work.date || '',
+                genre: work.genre || '그림',
+                rating: work.rating || 0,
+                review: work.description || '',
+                tags: typeof work.tags === 'string' ? JSON.parse(work.tags) : (work.tags || []),
+            });
+        } catch (e) {
+            console.error(e);
+            Alert.alert('Error', 'Failed to load work details');
+            router.back();
+        } finally {
+            setLoading(false);
         }
+    };
 
-        const result = useCamera
-            ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.8 })
-            : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 3], quality: 0.8 });
+    const pickImage = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.8 
+        });
 
         if (!result.canceled) {
-            setLoading(true);
-            try {
-                const manipResult = await ImageManipulator.manipulateAsync(
-                    result.assets[0].uri,
-                    [{ resize: { width: 1080 } }],
-                    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-                );
-                setImageUri(manipResult.uri);
-                setStep(2);
-            } catch (e) {
-                Alert.alert('Error', 'Failed to process image');
-            } finally {
-                setLoading(false);
-            }
+            const manipResult = await ImageManipulator.manipulateAsync(
+                result.assets[0].uri,
+                [{ resize: { width: 1080 } }],
+                { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+            );
+            setImageUri(manipResult.uri);
         }
     };
 
@@ -72,21 +92,12 @@ export default function UploadScreen() {
     };
 
     const handleSubmit = async () => {
-        if (!imageUri) return;
         if (!formData.title.trim()) { Alert.alert('Missing Info', 'Please enter a title'); return; }
 
-        setLoading(true);
+        setSubmitting(true);
         try {
-            const userJson = await AsyncStorage.getItem('imery-user');
-            const user = userJson ? JSON.parse(userJson) : null;
-            if (!user) {
-                Alert.alert('Error', 'User not logged in');
-                router.replace('/(auth)/login');
-                return;
-            }
-
             const data = new FormData();
-            data.append('user_id', user.user_id || user.id);
+            // Don't need user_id for update usually, but server might check ownership via token.
             data.append('title', formData.title);
             data.append('artist_name', formData.isUnknownArtist ? '작가 미상' : formData.artist);
             data.append('description', formData.review);
@@ -96,106 +107,46 @@ export default function UploadScreen() {
             data.append('rating', String(formData.rating));
             data.append('tags', JSON.stringify(formData.tags));
 
-            const filename = imageUri.split('/').pop() || 'upload.jpg';
-            const match = /\.(\w+)$/.exec(filename);
-            const type = match ? `image/${match[1]}` : `image/jpeg`;
+            // Only append image if changed (local uri)
+            if (imageUri && !imageUri.startsWith('http')) {
+                const filename = imageUri.split('/').pop() || 'upload.jpg';
+                const match = /\.(\w+)$/.exec(filename);
+                const type = match ? `image/${match[1]}` : `image/jpeg`;
+                data.append('image', { uri: imageUri, name: filename, type } as any);
+            } else {
+                data.append('image_url', imageUri || '');
+            }
 
-            data.append('image', { uri: imageUri, name: filename, type } as any);
-
-            await api.createPost(data);
-            Alert.alert('Success', 'Artwork uploaded!', [
-                { text: 'OK', onPress: () => router.replace('/(tabs)') }
+            await api.updatePost(workId, data);
+            Alert.alert('Success', 'Artwork updated!', [
+                { text: 'OK', onPress: () => router.back() }
             ]);
 
         } catch (e) {
             console.error(e);
-            Alert.alert('Upload Failed', 'Please try again.');
+            Alert.alert('Update Failed', 'Please try again.');
         } finally {
-            setLoading(false);
+            setSubmitting(false);
         }
     };
 
-    if (step === 1) {
+    if (loading) {
         return (
-            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }}>
-                <TouchableOpacity 
-                    style={{ flex: 1 }} 
-                    activeOpacity={1} 
-                    onPress={() => router.back()} 
-                />
-                <View style={{ 
-                    backgroundColor: 'white', 
-                    borderTopLeftRadius: 32, 
-                    borderTopRightRadius: 32,
-                    paddingHorizontal: 24,
-                    paddingBottom: 40,
-                    paddingTop: 12,
-                    ...shadowStyles.apple
-                }}>
-                    {/* Handle Bar */}
-                    <View style={{ 
-                        width: 40, 
-                        height: 5, 
-                        backgroundColor: '#E5E7EB', 
-                        borderRadius: 3, 
-                        alignSelf: 'center', 
-                        marginBottom: 20 
-                    }} />
-
-                    <View className="flex-row justify-between items-center mb-6">
-                        <Text className="text-3xl font-bold font-serif text-primary">작품 추가</Text>
-                        <TouchableOpacity onPress={() => router.back()} className="p-2 bg-gray-50 rounded-full">
-                            <X size={20} color={colors.primary} />
-                        </TouchableOpacity>
-                    </View>
-
-                    <Text className="text-gray-500 mb-8 font-sans text-base">작품을 어떻게 올리시겠습니까?</Text>
-
-                    <View className="gap-4">
-                        <TouchableOpacity
-                            onPress={() => pickImage(true)}
-                            className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex-row items-center gap-5 active:bg-gray-50"
-                            style={shadowStyles.sm}
-                        >
-                            <View className="w-14 h-14 bg-gray-900 rounded-2xl items-center justify-center">
-                                <Camera size={28} color="white" />
-                            </View>
-                            <View>
-                                <Text className="text-lg font-bold text-primary mb-1">카메라 촬영</Text>
-                                <Text className="text-gray-400 text-xs text-wrap">작품을 직접 촬영하여 올리기</Text>
-                            </View>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            onPress={() => pickImage(false)}
-                            className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex-row items-center gap-5 active:bg-gray-50"
-                            style={shadowStyles.sm}
-                        >
-                            <View className="w-14 h-14 bg-blue-600 rounded-2xl items-center justify-center">
-                                <ImageIcon size={28} color="white" />
-                            </View>
-                            <View>
-                                <Text className="text-lg font-bold text-primary mb-1">갤러리 선택</Text>
-                                <Text className="text-gray-400 text-xs text-wrap">앨범에서 작품 사진 선택하기</Text>
-                            </View>
-                        </TouchableOpacity>
-                    </View>
-
-                    {loading && <ActivityIndicator size="large" color={colors.primary} className="mt-8" />}
-                </View>
+            <View className="flex-1 justify-center items-center bg-white">
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
 
     return (
         <SafeAreaView className="flex-1 bg-white">
-            <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100">
-                <TouchableOpacity onPress={() => setStep(1)} className="p-2" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-100">
+                <TouchableOpacity onPress={() => router.back()} className="p-2" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <ArrowLeft size={24} color={colors.primary} />
                 </TouchableOpacity>
-                <Text className="font-bold text-lg">New Artwork</Text>
-                <TouchableOpacity onPress={handleSubmit} disabled={loading}>
-                    <Text className={`font-bold text-lg text-main ${loading ? 'opacity-50' : ''}`}>Save</Text>
+                <Text className="font-bold text-lg font-serif text-primary">Edit Artwork</Text>
+                <TouchableOpacity onPress={handleSubmit} disabled={submitting}>
+                    <Text className={`font-bold text-lg text-primary ${submitting ? 'opacity-50' : ''}`}>Save</Text>
                 </TouchableOpacity>
             </View>
 
@@ -205,7 +156,7 @@ export default function UploadScreen() {
                     <View className="h-64 rounded-xl overflow-hidden mb-8 bg-gray-100 relative">
                         <Image source={{ uri: imageUri! }} className="w-full h-full" resizeMode="cover" />
                         <TouchableOpacity
-                            onPress={() => setStep(1)}
+                            onPress={pickImage}
                             className="absolute bottom-4 right-4 bg-white/80 px-4 py-2 rounded-full backdrop-blur-md"
                         >
                             <Text className="font-bold text-xs">Change Photo</Text>
@@ -213,7 +164,6 @@ export default function UploadScreen() {
                     </View>
 
                     <View className="space-y-6 mb-12">
-
                         <View>
                             <Text className="text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Title</Text>
                             <TextInput
@@ -322,7 +272,6 @@ export default function UploadScreen() {
                         </View>
 
                     </View>
-
                     <View className="h-20" />
                 </ScrollView>
             </KeyboardAvoidingView>

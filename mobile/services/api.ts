@@ -2,14 +2,27 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// API Base URL Configuration
-// Use 10.0.2.2 for Android Emulator, localhost for iOS Simulator
-// For physical device testing, replace with your computer's local IP (e.g., http://192.168.1.100:3001)
-const API_BASE_URL = Platform.select({
-    ios: 'http://localhost:3001',
-    android: 'http://10.0.2.2:3001',
-    default: 'http://localhost:3001',
-});
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+
+// Dynamic Host Configuration
+// - Simulators: "localhost" (Stable)
+// - Physical Devices: "LAN IP" (dynamic hostUri)
+const debuggerHost = Constants.expoConfig?.hostUri;
+const lanIp = debuggerHost?.split(':')[0] || 'localhost';
+
+const API_BASE_URL = (() => {
+    if (!Device.isDevice) {
+        // Simulator / Emulator
+        return Platform.select({
+            android: 'http://10.0.2.2:3001',
+            default: 'http://localhost:3001',
+        });
+    } else {
+        // Physical Device
+        return `http://${lanIp}:3001`;
+    }
+})();
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -66,6 +79,11 @@ export default {
         return data.posts;
     },
 
+    getPost: async (id: string | number) => {
+        const { data } = await api.get(`/posts/${id}`);
+        return data;
+    },
+
     createPost: async (formData: any) => {
         const { data } = await api.post('/posts/', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
@@ -87,7 +105,8 @@ export default {
 
     // AI Analysis
     analyzePost: async (postId: string | number) => {
-        const { data } = await api.post(`/analyze/${postId}`);
+        // Server: app.post('/posts/:id/analyze')
+        const { data } = await api.post(`/posts/${postId}/analyze`);
         return data;
     },
 
@@ -107,29 +126,43 @@ export default {
         return data;
     },
 
+    // TODO: Update server to handle decline/respond specifically if needed. 
+    // Currently mapping respond to accept or delete based on status is complex here without changing server.
+    // Leaving as is for now, but note potential issue if server only has /friends/accept
     respondToFriendRequest: async (friendshipId: string | number, status: string) => {
-        const { data } = await api.post(`/friends/respond`, { friendshipId, status });
-        return data;
+        // Server has app.put('/friends/accept', { id })
+        if (status === 'ACCEPTED') {
+             const { data } = await api.put(`/friends/accept`, { id: friendshipId });
+             return data;
+        } else {
+             // Assuming decline = delete
+             const { data } = await api.delete(`/friends/${friendshipId}`);
+             return data;
+        }
     },
 
     // Interactions
     toggleLike: async (postId: string | number, userId: string | number) => {
-        const { data } = await api.post('/likes/toggle', { postId, userId });
+        // Server: app.post('/posts/:id/likes', { user_id })
+        const { data } = await api.post(`/posts/${postId}/likes`, { user_id: userId });
         return data;
     },
 
     toggleBookmark: async (userId: string | number, postId: string | number) => {
-        const { data } = await api.post('/bookmarks/toggle', { userId, postId });
+        // Server: app.post('/bookmarks', { user_id, post_id })
+        const { data } = await api.post('/bookmarks', { user_id: userId, post_id: postId });
         return data;
     },
 
     getComments: async (postId: string | number) => {
-        const { data } = await api.get(`/comments/${postId}`);
+        // Server: app.get('/posts/:id/comments')
+        const { data } = await api.get(`/posts/${postId}/comments`);
         return data;
     },
 
     addComment: async (postId: string | number, userId: string | number, content: string) => {
-        const { data } = await api.post('/comments/', { postId, userId, content });
+        // Server: app.post('/posts/:id/comments', { user_id, content })
+        const { data } = await api.post(`/posts/${postId}/comments`, { user_id: userId, content });
         return data;
     },
 
@@ -164,6 +197,34 @@ export default {
 
     getMyComments: async (userId: string | number) => {
         const { data } = await api.get(`/users/${userId}/comments`);
+        return data;
+    },
+
+    // Notifications
+    getNotifications: async (userId: string | number) => {
+        // Assuming this endpoint exists based on web usage
+        const { data } = await api.get(`/notifications/${userId}`);
+        return data;
+    },
+
+    deleteNotification: async (id: string | number) => {
+        const { data } = await api.delete(`/notifications/${id}`);
+        return data;
+    },
+
+    // Folders
+    getFolders: async (userId: string | number) => {
+        const { data } = await api.get(`/users/${userId}/folders`);
+        return data;
+    },
+
+    createFolder: async (payload: { user_id: string | number, name: string, post_ids: (string | number)[] }) => {
+        const { data } = await api.post('/folders', payload);
+        return data;
+    },
+
+    getFolderItems: async (folderId: string | number) => {
+        const { data } = await api.get(`/folders/${folderId}/items`);
         return data;
     },
 };

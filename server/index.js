@@ -45,11 +45,13 @@ const s3 = new S3Client({
     }
 });
 
+const BUCKET_NAME = process.env.AWS_S3_BUCKET || 'imery';
+
 // Multer S3 Setup
 const upload = multer({
     storage: multerS3({
         s3: s3,
-        bucket: process.env.AWS_S3_BUCKET,
+        bucket: BUCKET_NAME,
         contentType: multerS3.AUTO_CONTENT_TYPE,
         key: (req, file, cb) => {
             const extension = path.extname(file.originalname);
@@ -436,197 +438,69 @@ app.post('/bookmarks', async (req, res) => {
             res.json({ bookmarked: true });
         }
     } catch (e) {
-        res.status(500).json({ detail: '북마크 처리 실패' });
+        console.error("Bookmark Error:", e);
+        res.status(500).json({ detail: '북마크 처리 실패', error: e.message });
     }
 });
 
-// Get My Bookmarks
-app.get('/users/:id/bookmarks', async (req, res) => {
+// GET Comments for a post
+app.get('/posts/:id/comments', async (req, res) => {
     const { id } = req.params;
     try {
-        const bookmarks = await db.all(`
-            SELECT p.*, u.nickname,
-            (SELECT COUNT(*) FROM Likes WHERE post_id = p.id) as like_count,
-            b.created_at as bookmarked_at
-            FROM Bookmarks b
-            JOIN Posts p ON b.post_id = p.id
-            JOIN Users u ON p.user_id = u.id
-            WHERE b.user_id = ?
-            ORDER BY b.created_at DESC
+        const comments = await db.all(`
+            SELECT c.*, u.nickname, u.profile_image_url
+            FROM Comments c
+            JOIN Users u ON c.user_id = u.id
+            WHERE c.post_id = ?
+            ORDER BY c.created_at ASC
         `, [id]);
-        res.json(bookmarks);
+        res.json(comments);
     } catch (e) {
-        res.status(500).json({ detail: '북마크 조회 실패' });
+        res.status(500).json({ detail: '댓글 조회 실패' });
     }
 });
 
-// Add Comment
+// POST a comment
 app.post('/posts/:id/comments', async (req, res) => {
     const { id } = req.params;
     const { user_id, content } = req.body;
-
     try {
-        await db.run('INSERT INTO Comments (user_id, post_id, content) VALUES (?, ?, ?)', [user_id, id, content]);
-
+        const result = await db.run('INSERT INTO Comments (user_id, post_id, content) VALUES (?, ?, ?)', [user_id, id, content]);
+        
         // Notify Author
         const post = await db.get('SELECT user_id, title FROM Posts WHERE id = ?', [id]);
         if (post.user_id !== user_id) {
             const commenter = await db.get('SELECT nickname FROM Users WHERE id = ?', [user_id]);
             await db.run(
                 `INSERT INTO Notifications (user_id, type, message) VALUES (?, ?, ?)`,
-                [post.user_id, 'comment', `${commenter.nickname}님이 '${post.title}'에 댓글을 남겼습니다: "${content}"`]
+                [post.user_id, 'comment', `${commenter.nickname}님이 회원님의 '${post.title}' 작품에 댓글을 남겼습니다.`]
             );
         }
-        res.json({ message: '댓글 작성 완료' });
+        
+        res.json({ message: '댓글 작성 성공', id: result.lastID });
     } catch (e) {
         res.status(500).json({ detail: '댓글 작성 실패' });
     }
 });
 
-// Get Comments
-app.get('/posts/:id/comments', async (req, res) => {
-    const { id } = req.params;
-    const comments = await db.all(`
-        SELECT c.*, u.nickname 
-        FROM Comments c
-        JOIN Users u ON c.user_id = u.id
-        WHERE c.post_id = ?
-        ORDER BY c.created_at ASC
-    `, [id]);
-    res.json(comments);
-});
-
-// Get My Comments (Activity)
-app.get('/users/:id/comments', async (req, res) => {
+// Get Bookmarks
+app.get('/users/:id/bookmarks', async (req, res) => {
     const { id } = req.params;
     try {
-        const comments = await db.all(`
-            SELECT c.*, p.title as post_title, p.image_url as post_image, p.id as post_id
-            FROM Comments c
-            JOIN Posts p ON c.post_id = p.id
-            WHERE c.user_id = ?
-            ORDER BY c.created_at DESC
-        `, [id]);
-        res.json(comments);
+       const bookmarks = await db.all(`
+           SELECT b.post_id, b.created_at, p.* 
+           FROM Bookmarks b
+           JOIN Posts p ON b.post_id = p.id
+           WHERE b.user_id = ?
+           ORDER BY b.created_at DESC
+       `, [id]);
+       res.json(bookmarks);
     } catch (e) {
-        res.status(500).json({ detail: '댓글 활동 내역 조회 실패' });
+       res.status(500).json({ detail: '북마크 조회 실패' });
     }
 });
 
-// AI Analysis Proxy
-app.post('/posts/:id/analyze', async (req, res) => {
-    const { id } = req.params;
-
-    try {
-        // Use SELECT * to avoid "Unknown column" errors if schema drift occurred
-        const post = await db.get('SELECT * FROM Posts WHERE id = ?', [id]);
-        if (!post) return res.status(404).json({ detail: 'Post not found' });
-
-        // NEW LOGIC: If summary exists, just reveal it (set is_analyzed = 1) and return
-        if (post.ai_summary) {
-            console.log(`[AI] Analysis already exists for Post ${id}. Revealing result.`);
-            await db.run('UPDATE Posts SET is_analyzed = 1 WHERE id = ?', [id]);
-
-            // Fetch the full analysis result to return
-            let analysisData = {};
-            if (post.analysis_id) {
-                const results = await db.get('SELECT * FROM art_analysis WHERE id = ?', [post.analysis_id]);
-                if (results) {
-                    analysisData = {
-                        genre: results.genre,
-                        styles: [
-                            { name: results.style1, score: results.score1 },
-                            { name: results.style2, score: results.score2 },
-                            { name: results.style3, score: results.score3 },
-                            { name: results.style4, score: results.score4 },
-                            { name: results.style5, score: results.score5 },
-                        ],
-                        music_url: results.music_url
-                    };
-                }
-            }
-
-            return res.json({
-                message: '분석 결과 공개',
-                result: analysisData,
-                ai_summary: post.ai_summary,
-                analysis_id: post.analysis_id,
-                is_analyzed: true
-            });
-        }
-
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 90000); // 90s timeout
-
-        console.log(`[AI] Analyzing image for Post ${id}: ${post.image_url}`);
-
-        const response = await fetch('https://2tv7p4mphpm7ow-8000.proxy.runpod.net/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image_url: post.image_url }),
-            signal: controller.signal
-        });
-
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`AI Server responded with ${response.status}: ${errorText}`);
-        }
-
-        const data = await response.json();
-
-        // Save to art_analysis
-        const analysisResult = await db.run(`
-            INSERT INTO art_analysis (
-                post_id, genre, 
-                style1, score1, style2, score2, style3, score3, style4, score4, style5, score5, 
-                image_url, music_url
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-            id, data.genre,
-            data.styles[0]?.name, data.styles[0]?.score,
-            data.styles[1]?.name, data.styles[1]?.score,
-            data.styles[2]?.name, data.styles[2]?.score,
-            data.styles[3]?.name, data.styles[3]?.score,
-            data.styles[4]?.name, data.styles[4]?.score,
-            data.image_url, data.music_url
-        ]);
-
-        const aiSummary = `AI 분석 결과, 이 작품은 '${data.genre}' 장르로 분류되며, 가장 두드러지는 화풍은 '${data.styles[0]?.name}'(${Math.round(data.styles[0]?.score * 100)}%) 입니다. 이에 어울리는 음악이 생성되었습니다.`;
-
-        // Update Post (Set is_analyzed = 1)
-        await db.run(`
-            UPDATE Posts 
-            SET ai_summary = ?, music_url = ?, analysis_id = ?, is_analyzed = 1
-            WHERE id = ?
-        `, [aiSummary, data.music_url, analysisResult.lastID, id]);
-
-        res.json({
-            message: '분석 완료',
-            result: data,
-            ai_summary: aiSummary,
-            analysis_id: analysisResult.lastID,
-            is_analyzed: true
-        });
-
-    } catch (error) {
-        // clearTimeout(timeout); // Already cleared or undefined if failed before
-        console.error('[AI Error]:', error.message);
-        if (error.name === 'AbortError') {
-            res.status(504).json({ detail: 'AI 분석 시간이 너무 오래 걸립니다. (Timeout)' });
-        } else {
-            // Return actual error for debugging (DB errors, etc.)
-            res.status(500).json({
-                detail: `AI 분석 중 오류가 발생했습니다: ${error.message}`,
-                error: error.message
-            });
-        }
-    }
-});
-
-// Get Post with Details (Updated)
+// 2. Posts (continued)
 app.get('/posts/:id', async (req, res) => {
     const { id } = req.params;
     const post = await db.get(`
@@ -639,4 +513,117 @@ app.get('/posts/:id', async (req, res) => {
         WHERE p.id = ?
     `, [id]);
     res.json(post);
+});
+
+// AI Analyze Post
+app.post('/posts/:id/analyze', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const post = await db.get('SELECT * FROM Posts WHERE id = ?', [id]);
+        if (!post) return res.status(404).json({ detail: 'Post not found' });
+
+        // Mock Analysis Data
+        // In a real app, this would call an AI service
+        const mockAnalysis = {
+            genre: post.genre || '그림',
+            style1: post.style || '현대 미술', score1: 0.85,
+            style2: '추상화', score2: 0.12,
+            style3: '인상주의', score3: 0.03,
+            ai_summary: `이 작품 '${post.title}'은(는) ${post.genre || '그림'} 장르의 특성을 잘 보여주며, 전체적으로 ${post.style || '현대 미술'}의 기법을 중심으로 조화롭게 구성되어 있습니다. 색채의 대비와 형태의 리듬감이 돋보이는 작품입니다.`
+        };
+
+        // 1. Create entry in art_analysis
+        const result = await db.run(`
+            INSERT INTO art_analysis (post_id, genre, style1, score1, style2, score2, style3, score3, ai_summary)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [id, mockAnalysis.genre, mockAnalysis.style1, mockAnalysis.score1, mockAnalysis.style2, mockAnalysis.score2, mockAnalysis.style3, mockAnalysis.score3, mockAnalysis.ai_summary]);
+
+        const analysisId = result.lastID;
+
+        // 2. Update Post
+        await db.run(`
+            UPDATE Posts 
+            SET analysis_id = ?, is_analyzed = 1, ai_summary = ?
+            WHERE id = ?
+        `, [analysisId, mockAnalysis.ai_summary, id]);
+
+        // 3. Notify User
+        await db.run(
+            `INSERT INTO Notifications (user_id, type, message) VALUES (?, ?, ?)`,
+            [post.user_id, 'system', `'${post.title}' 작품의 AI 분석이 완료되었습니다.`]
+        );
+
+        res.json({
+            message: 'Analysis complete',
+            result: {
+                genre: mockAnalysis.genre,
+                styles: [
+                    { name: mockAnalysis.style1, score: mockAnalysis.score1 },
+                    { name: mockAnalysis.style2, score: mockAnalysis.score2 },
+                    { name: mockAnalysis.style3, score: mockAnalysis.score3 }
+                ]
+            },
+            ai_summary: mockAnalysis.ai_summary
+        });
+
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ detail: 'AI 분석 실패' });
+    }
+});
+
+// --- FOLDERS ---
+
+// Get User Folders
+app.get('/users/:id/folders', async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Return folders with item count
+        const folders = await db.all(`
+            SELECT f.*, COUNT(fi.post_id) as item_count
+            FROM Folders f
+            LEFT JOIN FolderItems fi ON f.id = fi.folder_id
+            WHERE f.user_id = ?
+            GROUP BY f.id
+            ORDER BY f.created_at DESC
+        `, [id]);
+        res.json(folders);
+    } catch (e) {
+        res.status(500).json({ detail: '폴더 목록 조회 실패' });
+    }
+});
+
+// Create Folder (and optionally add items)
+app.post('/folders', async (req, res) => {
+    const { user_id, name, post_ids } = req.body; // post_ids is array
+    try {
+        const result = await db.run('INSERT INTO Folders (user_id, name) VALUES (?, ?)', [user_id, name]);
+        const folderId = result.lastID;
+
+        if (post_ids && Array.isArray(post_ids) && post_ids.length > 0) {
+            for (const pid of post_ids) {
+                await db.run('INSERT INTO FolderItems (folder_id, post_id) VALUES (?, ?)', [folderId, pid]);
+            }
+        }
+        res.json({ message: '폴더 생성 성공', id: folderId });
+    } catch (e) {
+        res.status(500).json({ detail: '폴더 생성 실패', error: e.message });
+    }
+});
+
+// Get Folder Items
+app.get('/folders/:id/items', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const items = await db.all(`
+            SELECT p.* 
+            FROM FolderItems fi
+            JOIN Posts p ON fi.post_id = p.id
+            WHERE fi.folder_id = ?
+            ORDER BY fi.created_at DESC
+        `, [id]);
+        res.json(items);
+    } catch (e) {
+        res.status(500).json({ detail: '폴더 내용 조회 실패' });
+    }
 });

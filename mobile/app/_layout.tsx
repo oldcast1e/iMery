@@ -14,7 +14,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 cssInterop(SafeAreaView, { className: 'style' });
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+try {
+  SplashScreen.preventAutoHideAsync();
+} catch (e) {
+  // Ignore error if already shown/hidden
+}
 
 
 import { useAuthStore } from '../stores/authStore';
@@ -36,6 +40,7 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
+  const [isSplashScreenHidden, setIsSplashScreenHidden] = useState(false);
   const { user, isLoading, checkAuth } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
@@ -45,9 +50,17 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded && !isLoading) {
-      SplashScreen.hideAsync();
+    if (fontsLoaded && !isLoading && !isSplashScreenHidden) {
+      SplashScreen.hideAsync().then(() => {
+        setIsSplashScreenHidden(true);
+      }).catch(() => {
+        setIsSplashScreenHidden(true); // Still mark as hidden if it error'd (likely already hidden)
+      });
+    }
+  }, [fontsLoaded, isLoading, isSplashScreenHidden]);
 
+  useEffect(() => {
+    if (fontsLoaded && !isLoading) {
       const inAuthGroup = segments[0] === '(auth)';
 
       if (!user && !inAuthGroup) {
@@ -73,6 +86,8 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="work/upload" options={{ presentation: 'transparentModal', headerShown: false }} />
+        <Stack.Screen name="work/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
     </ThemeProvider>

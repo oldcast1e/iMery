@@ -153,8 +153,8 @@ export const initDb = async () => {
         )
     `);
 
-  // 8. Art Analysis Results
-  await pool.execute(`
+    // 8. Art Analysis Results
+    await pool.execute(`
         CREATE TABLE IF NOT EXISTS art_analysis (
             id INT AUTO_INCREMENT PRIMARY KEY,
             post_id INT,
@@ -176,6 +176,29 @@ export const initDb = async () => {
         )
     `);
 
+  // 9. Folders
+  await pool.execute(`
+        CREATE TABLE IF NOT EXISTS Folders (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT,
+            name VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES Users(id)
+        )
+    `);
+
+  // 10. Folder Items
+  await pool.execute(`
+        CREATE TABLE IF NOT EXISTS FolderItems (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            folder_id INT,
+            post_id INT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(folder_id) REFERENCES Folders(id) ON DELETE CASCADE,
+            FOREIGN KEY(post_id) REFERENCES Posts(id) ON DELETE CASCADE
+        )
+    `);
+
   // --- Schema Updates for Existing Tables (ALTER) ---
   // Because CREATE TABLE IF NOT EXISTS doesn't add missing columns.
 
@@ -191,6 +214,21 @@ export const initDb = async () => {
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN analysis_id INT"); } catch (e) { }
   // Use TINYINT(1) for MySQL/TiDB compatibility instead of BOOLEAN
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN is_analyzed TINYINT(1) DEFAULT 0"); } catch (e) { }
+
+  // Art Analysis: Add potentially missing columns if table existed before schema update
+  try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN genre VARCHAR(255)"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN style1 VARCHAR(255)"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN score1 FLOAT"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN style2 VARCHAR(255)"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN score2 FLOAT"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN style3 VARCHAR(255)"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN score3 FLOAT"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN style4 VARCHAR(255)"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN score4 FLOAT"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN style5 VARCHAR(255)"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN score5 FLOAT"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN image_url TEXT"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN music_url TEXT"); } catch (e) { }
 
   return new DatabaseWrapper(pool);
 };

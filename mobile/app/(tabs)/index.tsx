@@ -1,5 +1,6 @@
-import { View, Text, FlatList, RefreshControl, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, RefreshControl, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,6 +18,7 @@ export default function HomeScreen() {
     const [works, setWorks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [user, setUser] = useState<any>(null);
 
     // Filter States
     const [searchQuery, setSearchQuery] = useState('');
@@ -34,11 +36,23 @@ export default function HomeScreen() {
             const currentUser = userJson ? JSON.parse(userJson) : null;
 
             if (currentUser) {
-                const data = await api.getPosts();
-                // Check if api returns array or object (handled by our previous fix, but safe check)
-                const posts = Array.isArray(data) ? data : (data.posts || []);
+                setUser(currentUser);
+                const [postsData, bookmarksData] = await Promise.all([
+                    api.getPosts(),
+                    api.getBookmarks(currentUser.user_id || currentUser.id)
+                ]);
+                
+                const posts = Array.isArray(postsData) ? postsData : (postsData.posts || []);
                 const userWorks = posts.filter((w: any) => String(w.user_id) === String(currentUser.user_id || currentUser.id));
-                setWorks(userWorks.reverse());
+                // Explicitly sort by created_at descending (latest first)
+                const sortedWorks = [...userWorks].sort((a, b) => 
+                    new Date(b.created_at || b.work_date).getTime() - new Date(a.created_at || a.work_date).getTime()
+                );
+                setWorks(sortedWorks);
+
+                if (Array.isArray(bookmarksData)) {
+                    setBookmarkedIds(bookmarksData.map((b: any) => b.post_id || b.id));
+                }
             }
         } catch (error) {
             console.error(error);
@@ -56,6 +70,12 @@ export default function HomeScreen() {
     useEffect(() => {
         loadData();
     }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadData();
+        }, [])
+    );
 
     // Derived State (Filtering)
     const processedWorks = useMemo(() => {
@@ -93,10 +113,30 @@ export default function HomeScreen() {
     }, [works, searchQuery, selectedGenre, selectedRating, sortBy]);
 
     const handleBookmarkToggle = (id: number) => {
+        if (!user) return;
         setBookmarkedIds(prev => 
             prev.includes(id) ? prev.filter(b => b !== id) : [...prev, id]
         );
-        api.toggleBookmark(1, id).catch(() => {}); // Optimistic update, assuming user 1 or current
+        api.toggleBookmark(user.user_id || user.id, id).catch(() => {});
+    };
+
+    const handleDeleteWork = async (id: number) => {
+        Alert.alert("삭제", "정말 삭제하시겠습니까?", [
+            { text: "취소", style: "cancel" },
+            { 
+                text: "삭제", 
+                style: "destructive", 
+                onPress: async () => {
+                    try {
+                        await api.deletePost(id);
+                        setWorks(prev => prev.filter(w => w.id !== id));
+                        // Also remove from processed if needed, handled by useMemo
+                    } catch (e) {
+                        Alert.alert("오류", "삭제 실패");
+                    }
+                }
+            }
+        ]);
     };
 
     // Render Items
@@ -112,6 +152,8 @@ export default function HomeScreen() {
                         onPress={onPress}
                         onBookmarkToggle={handleBookmarkToggle}
                         isBookmarked={isBookmarked}
+                        onEdit={() => router.push({ pathname: '/work/edit', params: { id: item.id } })}
+                        onDelete={() => handleDeleteWork(item.id)}
                     />
                 </View>
             );
@@ -148,6 +190,7 @@ export default function HomeScreen() {
                             <HighlightCarousel 
                                 works={works} 
                                 onWorkClick={(work) => router.push({ pathname: '/work/[id]', params: { id: work.id } })}
+                                onMoreClick={() => router.push({ pathname: '/(tabs)/community', params: { openFolder: 'all' } })}
                             />
                             
                             {/* CategoryTabs has bottom padding inside or we just rely on tight spacing */}
