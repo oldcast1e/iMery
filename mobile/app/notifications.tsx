@@ -250,10 +250,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: colors.gray100,
-        gap: 12,
+        gap: 8,
     },
     backButton: {
         padding: 4,

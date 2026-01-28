@@ -49,7 +49,7 @@ export default function LoginScreen() {
                         resizeMode="contain"
                     />
                     <Text style={styles.title}>iMery</Text>
-                    <Text style={styles.subtitle}>당신의 감각을 기록하세요</Text>
+                    <Text style={styles.subtitle}>작품을 듣는 시간</Text>
                 </View>
 
                 <View style={styles.formSection}>

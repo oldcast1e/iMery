@@ -73,6 +73,11 @@ export default {
         return data;
     },
 
+    changePassword: async (userId: string | number, oldPassword: string, newPassword: string) => {
+        const { data } = await api.put('/users/password', { user_id: userId, oldPassword, newPassword });
+        return data;
+    },
+
     // Posts
     getPosts: async () => {
         const { data } = await api.get('/posts/');

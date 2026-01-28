@@ -55,10 +55,29 @@ npx expo start -c
 
 #### 버전 히스토리
 
-| 버전     | 플랫폼                  | 기술 스택               | 설명                           |
-| -------- | ----------------------- | ----------------------- | ------------------------------ |
-| **v2.0** | 📱 Mobile (iOS/Android) | **React Native + Expo** | 모바일 네이티브 앱 (현재 버전) |
-| v1.5     | 🌐 Web                  | React + Vite + Tailwind | 웹 애플리케이션 (레거시)       |
+| 버전     | 플랫폼                  | 기술 스택                 | 설명                                              |
+| -------- | ----------------------- | ------------------------- | ------------------------------------------------- |
+| **v2.1** | 📱 Mobile (Update)      | **UI Polish & Bug Fixes** | UI 표준화 (Edit/Settings), 달력 수정, 서버 안정화 |
+| v2.0     | 📱 Mobile (iOS/Android) | **React Native + Expo**   | 모바일 네이티브 앱 (현재 버전)                    |
+| v1.5     | 🌐 Web                  | React + Vite + Tailwind   | 웹 애플리케이션 (레거시)                          |
+
+#### 최근 업데이트 (v2.1 Updates)
+
+**1. UI/UX 표준화 (Standardization)**
+
+- **작품 수정 화면 (`EditWorkScreen`)**:
+  - `UploadScreen`과 동일한 디자인 시스템 적용 (폰트, 여백, 버튼 스타일)
+  - Rating, Tags, Genre 컴포넌트 스타일 통일
+  - 불필요한 헤더 및 `SafeAreaView` 여백 문제 해결
+- **설정 화면 (`SettingsScreen`)**:
+  - 버튼 스타일을 로그인 화면과 통일 (Black Pill Shape)
+- **달력 화면 (`CalendarTab`)**:
+  - 이미지 겹침 현상 해결 (Aspect Ratio 1:1 적용)
+
+**2. 서버 및 안정성 (Stability)**
+
+- **API 수정 (`PUT /posts/:id`)**: 게시글 수정 시 기존 데이터(`ai_summary`, `music_url`)가 유실되지 않도록 보존 로직 추가
+- **서버 에러 해결**: `EADDRINUSE` 포트 충돌 자동 해결 및 재시작 프로세스 정립
 
 #### 주요 특징
 

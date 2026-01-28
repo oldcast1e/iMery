@@ -4,6 +4,7 @@ import { Link, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '@services/api';
 import { ArrowLeft } from 'lucide-react-native';
+import { colors } from '../../constants/designSystem';
 
 export default function SignupScreen() {
     const router = useRouter();
@@ -40,7 +41,7 @@ export default function SignupScreen() {
         >
             <View style={{ flex: 1, padding: 24, paddingTop: insets.top }}>
                 <TouchableOpacity onPress={() => router.back()} className="mb-8">
-                    <ArrowLeft color="#000" size={24} />
+                    <ArrowLeft color={colors.primary} size={24} />
                 </TouchableOpacity>
 
                 <Text className="text-3xl font-bold text-gray-900 mb-2">Create Account</Text>

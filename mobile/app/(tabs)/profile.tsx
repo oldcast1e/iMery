@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, FlatList, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, FlatList, StyleSheet, Modal, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
-// Header is already provided by layout, but we need custom layout inside
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Settings, LogOut, Bookmark, Heart, MessageCircle, Camera } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Settings, LogOut, Bookmark, Heart, MessageCircle, Camera, X } from 'lucide-react-native';
 import api from '@services/api';
 import { colors, shadowStyles, typography } from '../../constants/designSystem';
 import WorkCardGrid from '../../components/work/WorkCardGrid';
@@ -18,6 +17,11 @@ export default function ProfileScreen() {
     const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
     const [activeTab, setActiveTab] = useState<'bookmarks' | 'likes' | 'comments'>('bookmarks');
     
+    // Edit Profile
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [newBio, setNewBio] = useState('');
+    const [uploading, setUploading] = useState(false);
+
     // Data List
     const [listData, setListData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -75,21 +79,12 @@ export default function ProfileScreen() {
             
             if (activeTab === 'bookmarks') {
                  data = await api.getBookmarks(userId);
-                 // Ensure data structure matches what UI expects. Assuming API returns array of posts
             } else if (activeTab === 'likes') {
                  try {
                     const likedIds = await api.getMyLikes(userId);
-                    // Mobile Optimization: Fetch recent posts and filter, OR if api returns full objects use that.
-                    // Web fetchMyLikes returned IDs. 
-                    // If API returns IDs, we need to fetch posts.
-                    // Assuming getMyLikes returns IDs array mostly?
-                    // Let's check api.ts again. Web said: "We have getMyLikes but it returns IDs"
-                    // So we fetch all posts (expensive) or hopefully we have a better endpoint.
-                    // For MVP let's fetch all posts and filter.
                     const allPosts = await api.getPosts();
                     data = allPosts.filter((w: any) => likedIds.includes(w.id));
                  } catch(e) {
-                     // If endpoint returns objects directly
                      data = []; 
                  }
             } else if (activeTab === 'comments') {
@@ -102,6 +97,73 @@ export default function ProfileScreen() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handlePickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+             Alert.alert('Permission needed', 'Gallery permission is required to change profile picture.');
+             return;
+        }
+
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaType.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+            handleUpdateProfileImage(result.assets[0]);
+        }
+    };
+
+    const handleUpdateProfileImage = async (asset: any) => {
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('user_id', user.user_id || user.id);
+            formData.append('bio', profile?.bio || user?.bio || '');
+            
+            const fileCheck = {
+                uri: asset.uri,
+                type: 'image/jpeg',
+                name: 'profile.jpg',
+            } as any;
+            
+            formData.append('image', fileCheck);
+
+            const res = await api.updateProfile(user.user_id || user.id, formData);
+            setProfile(res.user);
+            Alert.alert('Success', '프로필 사진이 변경되었습니다.');
+        } catch (e) {
+            Alert.alert('Error', '프로필 사진 변경 실패');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleUpdateBio = async () => {
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('user_id', user.user_id || user.id);
+            formData.append('bio', newBio);
+            
+            const res = await api.updateProfile(user.user_id || user.id, formData);
+            setProfile(res.user);
+            setEditModalVisible(false);
+            Alert.alert('Success', '자신을 소개하는 글이 변경되었습니다.');
+        } catch (e) {
+            Alert.alert('Error', '프로필 수정 실패');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const openEditBio = () => {
+        setNewBio(profile?.bio || user?.bio || '');
+        setEditModalVisible(true);
     };
 
     const handleLogout = async () => {
@@ -132,7 +194,7 @@ export default function ProfileScreen() {
             {/* Settings */}
             <TouchableOpacity 
                 style={styles.settingsButton}
-                onPress={() => Alert.alert('Settings', 'Settings modal would open here')}
+                onPress={() => router.push('/settings')}
             >
                 <Settings size={22} color={colors.gray400} />
             </TouchableOpacity>
@@ -143,14 +205,16 @@ export default function ProfileScreen() {
                     source={{ uri: user ? getImageUrl(profile?.profile_image_url || user.profile_image_url || null) : undefined }}
                     style={styles.profileImage}
                 />
-                <TouchableOpacity style={styles.editButton}>
-                    <Camera size={14} color="#FFF" />
+                <TouchableOpacity style={styles.editButton} onPress={handlePickImage} disabled={uploading}>
+                    {uploading ? <ActivityIndicator size="small" color="#FFF" /> : <Camera size={14} color="#FFF" />}
                 </TouchableOpacity>
             </View>
 
             {/* Info */}
-            <Text style={styles.nickname}>{profile?.nickname || user?.nickname || 'Guest'}</Text>
-            <Text style={styles.bio}>{profile?.bio || user?.bio || "자기소개를 입력해주세요."}</Text>
+            <TouchableOpacity onPress={openEditBio} style={{ alignItems: 'center' }}>
+                <Text style={styles.nickname}>{profile?.nickname || user?.nickname || 'Guest'}</Text>
+                <Text style={styles.bio}>{profile?.bio || user?.bio || "자기소개를 입력해주세요."}</Text>
+            </TouchableOpacity>
 
             {/* Stats */}
             <View style={styles.statsRow}>
@@ -211,8 +275,6 @@ export default function ProfileScreen() {
             );
         }
 
-        // Works/Bookmarks (Reusing WorkCardGrid or making a list item similar to web)
-        // Web uses ActivityList which is a list row.
         return (
              <TouchableOpacity 
                 style={styles.listItem}
@@ -270,15 +332,38 @@ export default function ProfileScreen() {
                         </Text>
                     </View>
                 }
-                ListFooterComponent={
-                    <View style={{ padding: 24 }}>
-                        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-                            <LogOut size={16} color="#ef4444" />
-                            <Text style={styles.logoutText}>로그아웃</Text>
+                ListFooterComponent={<View style={{ height: 100 }} />}
+             />
+
+            {/* Edit Bio Modal */}
+            <Modal
+                transparent={true}
+                visible={editModalVisible}
+                animationType="fade"
+                onRequestClose={() => setEditModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>자기소개 수정</Text>
+                            <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                                <X size={24} color={colors.gray500} />
+                            </TouchableOpacity>
+                        </View>
+                        <TextInput 
+                            style={styles.bioInput}
+                            value={newBio}
+                            onChangeText={setNewBio}
+                            placeholder="자신을 자유롭게 소개해 보세요."
+                            multiline
+                            maxLength={100}
+                        />
+                        <TouchableOpacity style={styles.saveBtn} onPress={handleUpdateBio} disabled={uploading}>
+                            <Text style={styles.saveBtnText}>{uploading ? '저장 중...' : '저장'}</Text>
                         </TouchableOpacity>
                     </View>
-                }
-             />
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -489,6 +574,52 @@ const styles = StyleSheet.create({
     },
     logoutText: {
         color: '#ef4444',
+        fontFamily: typography.sansBold,
+        fontSize: 14,
+    },
+    // Modal
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContainer: {
+        width: '85%',
+        backgroundColor: colors.white,
+        borderRadius: 24,
+        padding: 24,
+        ...shadowStyles.premium,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontFamily: typography.serif,
+        color: colors.primary,
+    },
+    bioInput: {
+        backgroundColor: colors.gray100,
+        borderRadius: 12,
+        padding: 16,
+        minHeight: 100,
+        fontSize: 14,
+        fontFamily: typography.sans,
+        textAlignVertical: 'top',
+        marginBottom: 24,
+    },
+    saveBtn: {
+        backgroundColor: colors.primary,
+        padding: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    saveBtnText: {
+        color: colors.white,
         fontFamily: typography.sansBold,
         fontSize: 14,
     }

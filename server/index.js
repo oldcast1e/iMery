@@ -154,7 +154,20 @@ app.post('/posts/', upload.single('image'), async (req, res) => {
         const result = await db.run(
             `INSERT INTO Posts (user_id, title, artist_name, image_url, description, rating, ai_summary, music_url, work_date, genre, tags, style) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [user_id, title, artist_name, image_url, description, rating, ai_summary, music_url, work_date || new Date().toISOString().split('T')[0].replace(/-/g, '.'), finalGenre, tags || '[]', style || '']
+            [
+                user_id || null, 
+                title || 'Untitled', 
+                artist_name || 'Unknown', 
+                image_url || null, 
+                description || '', 
+                rating || 0, 
+                ai_summary || null, 
+                music_url || null, 
+                work_date || new Date().toISOString().split('T')[0].replace(/-/g, '.'), 
+                finalGenre, 
+                tags || '[]', 
+                style || ''
+            ]
         );
         res.json({ message: '업로드 성공', id: result.lastID });
 
@@ -214,13 +227,37 @@ app.put('/posts/:id', upload.single('image'), async (req, res) => {
         image_url = req.file.location; // S3 URL
     }
 
+    // Fetch current post to preserve existing values (like ai_summary, music_url)
+    let currentPost = {};
+    try {
+        currentPost = await db.get('SELECT * FROM Posts WHERE id = ?', [id]);
+        if (!currentPost) return res.status(404).json({ detail: 'Post not found' });
+    } catch (e) {
+        return res.status(500).json({ detail: 'Error fetching post' });
+    }
+
     try {
         await db.run(
             `UPDATE Posts SET title=?, artist_name=?, image_url=?, description=?, rating=?, ai_summary=?, music_url=?, work_date=?, genre=?, tags=?, style=? WHERE id=?`,
-            [title, artist_name, image_url, description, rating, ai_summary, music_url, work_date, finalGenre, tags || '[]', style || '', id]
+            [
+                title !== undefined ? title : currentPost.title,
+                artist_name !== undefined ? artist_name : currentPost.artist_name,
+                image_url !== undefined ? image_url : currentPost.image_url,
+                description !== undefined ? description : currentPost.description,
+                rating !== undefined ? rating : currentPost.rating,
+                // Preserve AI Summary & Music URL if they exist in DB but not in request
+                ai_summary !== undefined ? ai_summary : currentPost.ai_summary, 
+                music_url !== undefined ? music_url : currentPost.music_url,
+                work_date !== undefined ? work_date : currentPost.work_date,
+                finalGenre !== undefined ? finalGenre : currentPost.genre,
+                tags !== undefined ? (tags || '[]') : currentPost.tags,
+                style !== undefined ? style : currentPost.style,
+                id
+            ]
         );
         res.json({ message: '수정 성공' });
     } catch (e) {
+        console.error(e);
         res.status(500).json({ detail: '수정 실패' });
     }
 });
@@ -457,6 +494,24 @@ app.get('/posts/:id/comments', async (req, res) => {
         res.json(comments);
     } catch (e) {
         res.status(500).json({ detail: '댓글 조회 실패' });
+    }
+});
+
+// GET Comments by User (Activity)
+app.get('/users/:id/comments', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const comments = await db.all(`
+            SELECT c.*, p.title as post_title, p.image_url as post_image, p.artist_name as artist
+            FROM Comments c
+            JOIN Posts p ON c.post_id = p.id
+            WHERE c.user_id = ?
+            ORDER BY c.created_at DESC
+        `, [id]);
+        res.json(comments);
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ detail: '사용자 댓글 조회 실패' });
     }
 });
 

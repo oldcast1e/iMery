@@ -1,55 +1,60 @@
-# Common Patterns
+# iMery Architecture Patterns
 
-## API Response Format
+## activeView Routing (Frontend)
 
-```typescript
-interface ApiResponse<T> {
-  success: boolean
-  data?: T
-  error?: string
-  meta?: {
-    total: number
-    page: number
-    limit: number
-  }
+Instead of traditional routing, we use a top-level `activeView` state in `App.jsx`.
+
+```javascript
+// App.jsx
+const [activeView, setActiveView] = useState("home");
+
+// Component rendering
+{
+  activeView === "home" && <HomeView onNavigate={setActiveView} />;
+}
+{
+  activeView === "workDetail" && (
+    <WorkDetailView work={selectedWork} onBack={() => setActiveView("home")} />
+  );
 }
 ```
 
-## Custom Hooks Pattern
+## AI Analysis Flow
 
-```typescript
-export function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value)
+AI analysis involves RunPod (image) and Gemini (audio/summary).
 
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay)
-    return () => clearTimeout(handler)
-  }, [value, delay])
-
-  return debouncedValue
-}
+```javascript
+// Workflow in server/index.js
+app.post("/analyze/:id", async (req, res) => {
+  // 1. Get image from S3 URL
+  // 2. Call RunPod API for style scores
+  // 3. Call Gemini API for AI summary and audio prompt
+  // 4. Update database (is_analyzed = 1)
+  // 5. Return result to frontend
+});
 ```
 
-## Repository Pattern
+## S3 Image Upload Pattern
 
-```typescript
-interface Repository<T> {
-  findAll(filters?: Filters): Promise<T[]>
-  findById(id: string): Promise<T | null>
-  create(data: CreateDto): Promise<T>
-  update(id: string, data: UpdateDto): Promise<T>
-  delete(id: string): Promise<void>
-}
+We use `multer-s3` for direct uploads to AWS.
+
+```javascript
+const upload = multer({
+  storage: multerS3({
+    s3: s3Client,
+    bucket: process.env.AWS_S3_BUCKET,
+    key: (req, file, cb) => {
+      cb(null, `${Date.now()}-${file.originalname}`);
+    },
+  }),
+});
 ```
 
-## Skeleton Projects
+## LocalStorage State Persistence
 
-When implementing new functionality:
-1. Search for battle-tested skeleton projects
-2. Use parallel agents to evaluate options:
-   - Security assessment
-   - Extensibility analysis
-   - Relevance scoring
-   - Implementation planning
-3. Clone best match as foundation
-4. Iterate within proven structure
+Use `useLocalStorage` for user sessions and local settings.
+
+```javascript
+const [user, setUser] = useLocalStorage("imery-user", null);
+const [folders, setFolders] = useLocalStorage(`imery-folders-${user?.id}`, []);
+```

@@ -1,70 +1,30 @@
-# Coding Style
+# iMery Coding Style
 
-## Immutability (CRITICAL)
+## React & Frontend (CRITICAL)
 
-ALWAYS create new objects, NEVER mutate:
+- **React 19**: Use modern hooks and concurrent features.
+- **Tailwind CSS**: Use utility classes for all styling. Maintain "premium" look (glassmorphism, soft gradients).
+- **Framer Motion**: ALWAYS use for transitions and micro-interactions.
+- **State**: Prefer `useLocalStorage` for values that should persist across sessions.
 
-```javascript
-// WRONG: Mutation
-function updateUser(user, name) {
-  user.name = name  // MUTATION!
-  return user
-}
+## Backend & API
 
-// CORRECT: Immutability
-function updateUser(user, name) {
-  return {
-    ...user,
-    name
-  }
-}
-```
+- **Express.js**: Keep `index.js` organized. Group related endpoints.
+- **MySQL/TiDB**: Use prepared statements (standard in `mysql2`) to prevent injection.
+- **Error Handling**: Return clear error messages to the frontend.
+- **Security**: NEVER commit `.env` files. Hash passwords with `bcryptjs`.
 
 ## File Organization
 
-MANY SMALL FILES > FEW LARGE FILES:
-- High cohesion, low coupling
-- 200-400 lines typical, 800 max
-- Extract utilities from large components
-- Organize by feature/domain, not by type
-
-## Error Handling
-
-ALWAYS handle errors comprehensively:
-
-```typescript
-try {
-  const result = await riskyOperation()
-  return result
-} catch (error) {
-  console.error('Operation failed:', error)
-  throw new Error('Detailed user-friendly message')
-}
-```
-
-## Input Validation
-
-ALWAYS validate user input:
-
-```typescript
-import { z } from 'zod'
-
-const schema = z.object({
-  email: z.string().email(),
-  age: z.number().int().min(0).max(150)
-})
-
-const validated = schema.parse(input)
-```
+- **Frontend**: `src/pages` (View), `src/features` (Complex UI), `src/widgets` (Nav/Layout).
+- **Backend**: `server/index.js` for routes, `server/db.js` for schema.
 
 ## Code Quality Checklist
 
-Before marking work complete:
-- [ ] Code is readable and well-named
-- [ ] Functions are small (<50 lines)
-- [ ] Files are focused (<800 lines)
-- [ ] No deep nesting (>4 levels)
-- [ ] Proper error handling
-- [ ] No console.log statements
-- [ ] No hardcoded values
-- [ ] No mutation (immutable patterns used)
+- [ ] Code uses Tailwind CSS for all styling (no custom CSS files if possible).
+- [ ] Framer Motion is used for new UI transitions.
+- [ ] API calls are handled via `src/api/client.js`.
+- [ ] No direct mutations of state or objects.
+- [ ] Error boundary or try/catch around async operations.
+- [ ] console.log removed (use custom logger if available).
+- [ ] Semantic HTML and unique IDs for automated tests.

@@ -1,16 +1,18 @@
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, Alert, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, Alert, ActivityIndicator, Platform, KeyboardAvoidingView, StyleSheet } from 'react-native';
 import { useState, useEffect } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Camera, Image as ImageIcon, ArrowLeft } from 'lucide-react-native';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Camera, Image as ImageIcon, ArrowLeft, Star } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import api from '@services/api';
 import { getImageUrl } from '../../utils/imageHelper';
-import { colors } from '../../constants/designSystem';
+import { colors, shadowStyles } from '../../constants/designSystem';
+import TagSelector from '../../components/work/TagSelector';
 
 export default function EditWorkScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const { id } = useLocalSearchParams();
     const workId = Array.isArray(id) ? id[0] : id;
     const [imageUri, setImageUri] = useState<string | null>(null);
@@ -26,11 +28,10 @@ export default function EditWorkScreen() {
         genre: '그림',
         rating: 5,
         review: '',
-        tags: [] as string[],
+        tags: [] as { id: string; label: string; path: string[] }[],
     });
 
     const genres = ['그림', '조각', '사진', '판화', '기타'];
-    const predefinedTags = ['유화', '수채화', '풍경', '인물', '추상', '모던', '고전'];
 
     useEffect(() => {
         if (workId) loadWork();
@@ -52,6 +53,7 @@ export default function EditWorkScreen() {
                 genre: work.genre || '그림',
                 rating: work.rating || 0,
                 review: work.description || '',
+                // Parse tags, fallback to empty array. Expecting Tag[] structure.
                 tags: typeof work.tags === 'string' ? JSON.parse(work.tags) : (work.tags || []),
             });
         } catch (e) {
@@ -78,16 +80,6 @@ export default function EditWorkScreen() {
                 { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
             );
             setImageUri(manipResult.uri);
-        }
-    };
-
-    const toggleTag = (tag: string) => {
-        const current = formData.tags;
-        if (current.includes(tag)) {
-            setFormData({ ...formData, tags: current.filter(t => t !== tag) });
-        } else {
-            if (current.length >= 5) return;
-            setFormData({ ...formData, tags: [...current, tag] });
         }
     };
 
@@ -139,49 +131,70 @@ export default function EditWorkScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-white">
-            <View className="flex-row justify-between items-center px-4 py-3 border-b border-gray-100">
-                <TouchableOpacity onPress={() => router.back()} className="p-2" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+            <Stack.Screen options={{ headerShown: false }} />
+            
+            {/* Header */}
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
                     <ArrowLeft size={24} color={colors.primary} />
                 </TouchableOpacity>
-                <Text className="font-bold text-lg font-serif text-primary">Edit Artwork</Text>
-                <TouchableOpacity onPress={handleSubmit} disabled={submitting}>
-                    <Text className={`font-bold text-lg text-primary ${submitting ? 'opacity-50' : ''}`}>Save</Text>
+                <Text style={styles.headerTitle}>Edit Artwork</Text>
+                <TouchableOpacity 
+                    onPress={handleSubmit} 
+                    disabled={submitting}
+                    style={[styles.submitButton, { backgroundColor: colors.primary }]}
+                >
+                    {submitting ? (
+                        <ActivityIndicator color="#FFF" size="small" />
+                    ) : (
+                        <Text style={styles.submitText}>Save</Text>
+                    )}
                 </TouchableOpacity>
             </View>
 
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
-                <ScrollView className="flex-1 px-6 py-6">
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+                <ScrollView contentContainerStyle={styles.scrollContent}>
 
-                    <View className="h-64 rounded-xl overflow-hidden mb-8 bg-gray-100 relative">
-                        <Image source={{ uri: imageUri! }} className="w-full h-full" resizeMode="cover" />
+                    {/* Image Preview */}
+                    <View style={styles.imagePreviewContainer}>
+                        <Image source={{ uri: imageUri! }} style={styles.previewImage} />
                         <TouchableOpacity
                             onPress={pickImage}
-                            className="absolute bottom-4 right-4 bg-white/80 px-4 py-2 rounded-full backdrop-blur-md"
+                            style={styles.changeImageButton}
                         >
-                            <Text className="font-bold text-xs">Change Photo</Text>
+                            <Text style={styles.changeImageText}>Change Photo</Text>
                         </TouchableOpacity>
                     </View>
 
-                    <View className="space-y-6 mb-12">
-                        <View>
-                            <Text className="text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Title</Text>
+                    <View style={styles.formSection}>
+                        {/* Title */}
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.labelText}>TITLE</Text>
                             <TextInput
                                 value={formData.title}
                                 onChangeText={t => setFormData({ ...formData, title: t })}
                                 placeholder="Artwork Title"
-                                className="bg-gray-50 p-4 rounded-xl text-base"
+                                style={styles.input}
+                                placeholderTextColor={colors.gray400}
                             />
                         </View>
 
-                        <View>
-                            <View className="flex-row justify-between items-center mb-2 ml-1">
-                                <Text className="text-xs font-bold text-gray-400 uppercase">Artist</Text>
+                        {/* Artist */}
+                        <View style={styles.inputGroup}>
+                            <View style={styles.labelRow}>
+                                <Text style={styles.labelText}>ARTIST</Text>
                                 <TouchableOpacity
                                     onPress={() => setFormData(prev => ({ ...prev, isUnknownArtist: !prev.isUnknownArtist }))}
-                                    className={`px-3 py-1 rounded-full border ${formData.isUnknownArtist ? 'bg-black border-black' : 'bg-white border-gray-200'}`}
+                                    style={[
+                                        styles.unknownBadge,
+                                        formData.isUnknownArtist ? styles.unknownBadgeActive : styles.unknownBadgeInactive
+                                    ]}
                                 >
-                                    <Text className={`text-[10px] font-bold ${formData.isUnknownArtist ? 'text-white' : 'text-gray-500'}`}>Unknown Artist</Text>
+                                    <Text style={[
+                                        styles.unknownText,
+                                        formData.isUnknownArtist ? styles.unknownTextActive : styles.unknownTextInactive
+                                    ]}>Unknown Artist</Text>
                                 </TouchableOpacity>
                             </View>
                             {!formData.isUnknownArtist && (
@@ -189,92 +202,276 @@ export default function EditWorkScreen() {
                                     value={formData.artist}
                                     onChangeText={t => setFormData({ ...formData, artist: t })}
                                     placeholder="Artist Name"
-                                    className="bg-gray-50 p-4 rounded-xl text-base"
+                                    style={styles.input}
+                                    placeholderTextColor={colors.gray400}
                                 />
                             )}
                         </View>
 
-                        <View>
-                            <Text className="text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Style</Text>
+                        {/* Style */}
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.labelText}>STYLE</Text>
                             <TextInput
                                 value={formData.style}
                                 onChangeText={t => setFormData({ ...formData, style: t })}
                                 placeholder="e.g. Impressionism, Oil..."
-                                className="bg-gray-50 p-4 rounded-xl text-base"
+                                style={styles.input}
+                                placeholderTextColor={colors.gray400}
                             />
                         </View>
 
-                        <View>
-                            <Text className="text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Date</Text>
+                        {/* Date */}
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.labelText}>DATE</Text>
                             <TextInput
                                 value={formData.date}
                                 onChangeText={t => setFormData({ ...formData, date: t })}
-                                placeholder="YYYY-MM-DD"
-                                className="bg-gray-50 p-4 rounded-xl text-base"
+                                placeholder="YYYY.MM.DD"
+                                style={styles.input}
+                                placeholderTextColor={colors.gray400}
                                 keyboardType="numbers-and-punctuation"
                             />
                         </View>
 
-                        <View>
-                            <Text className="text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Genre</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2">
+                        {/* Genre */}
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.labelText}>GENRE</Text>
+                            <View style={styles.genreRow}>
                                 {genres.map(g => (
                                     <TouchableOpacity
                                         key={g}
                                         onPress={() => setFormData({ ...formData, genre: g })}
-                                        className={`px-4 py-2 rounded-xl border ${formData.genre === g ? 'bg-black border-black' : 'bg-white border-gray-200'}`}
+                                        style={[
+                                            styles.genreChip,
+                                            formData.genre === g && styles.genreChipActive
+                                        ]}
                                     >
-                                        <Text className={`text-xs font-bold ${formData.genre === g ? 'text-white' : 'text-gray-500'}`}>{g}</Text>
+                                        <Text style={[
+                                            styles.genreText,
+                                            formData.genre === g && styles.genreTextActive
+                                        ]}>{g}</Text>
                                     </TouchableOpacity>
                                 ))}
-                            </ScrollView>
+                            </View>
                         </View>
 
-                        <View>
-                            <Text className="text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Rating</Text>
-                            <View className="flex-row gap-2">
+                        {/* Rating */}
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.labelText}>RATING</Text>
+                            <View style={styles.ratingContainer}>
                                 {[1, 2, 3, 4, 5].map((star) => (
                                     <TouchableOpacity 
                                         key={star} 
                                         onPress={() => setFormData({ ...formData, rating: star })}
+                                        style={styles.starButton}
                                     >
-                                        <Text style={{ fontSize: 24, color: star <= formData.rating ? '#FBBF24' : '#E5E7EB' }}>★</Text>
+                                        <Star 
+                                            size={28} 
+                                            color={star <= formData.rating ? "#FACC15" : "#E5E7EB"} 
+                                            fill={star <= formData.rating ? "#FACC15" : "none"} 
+                                        />
                                     </TouchableOpacity>
                                 ))}
                             </View>
                         </View>
 
-                        <View>
-                            <Text className="text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Tags (Max 5)</Text>
-                            <View className="flex-row flex-wrap gap-2">
-                                {predefinedTags.map(tag => (
-                                    <TouchableOpacity
-                                        key={tag}
-                                        onPress={() => toggleTag(tag)}
-                                        className={`px-3 py-1.5 rounded-lg border ${formData.tags.includes(tag) ? 'bg-main border-main' : 'bg-white border-gray-200'}`}
-                                    >
-                                        <Text className={`text-xs ${formData.tags.includes(tag) ? 'text-white font-bold' : 'text-gray-500'}`}>#{tag}</Text>
-                                    </TouchableOpacity>
-                                ))}
+                        {/* Tags */}
+                        <View style={styles.inputGroup}>
+                            <View style={styles.labelRow}>
+                                <Text style={styles.labelText}>TAGS</Text>
+                                <Text style={styles.helperText}>Max 5</Text>
                             </View>
+                            <TagSelector 
+                                selectedTags={formData.tags}
+                                onTagsChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+                            />
                         </View>
 
-                        <View>
-                            <Text className="text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Review</Text>
+                        {/* Review */}
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.labelText}>REVIEW</Text>
                             <TextInput
                                 value={formData.review}
                                 onChangeText={t => setFormData({ ...formData, review: t })}
                                 placeholder="Write your thoughts..."
-                                className="bg-gray-50 p-4 rounded-xl text-base h-32"
+                                style={styles.textArea}
+                                placeholderTextColor={colors.gray400}
                                 multiline
                                 textAlignVertical="top"
                             />
                         </View>
 
                     </View>
-                    <View className="h-20" />
+                    <View style={{ height: 40 }} />
                 </ScrollView>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#FFF',
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    headerButton: {
+        padding: 8,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold', // Match visual
+        fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif', // Match serif look
+        color: '#1a1a1a',
+    },
+    submitButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+    },
+    submitText: {
+        color: '#FFF',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    scrollContent: {
+        padding: 20,
+    },
+    imagePreviewContainer: {
+        height: 200,
+        borderRadius: 24,
+        overflow: 'hidden',
+        marginBottom: 24,
+        position: 'relative',
+        ...shadowStyles.apple,
+    },
+    previewImage: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+    },
+    changeImageButton: {
+        position: 'absolute',
+        bottom: 12,
+        right: 12,
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        ...shadowStyles.sm,
+    },
+    changeImageText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#1a1a1a',
+    },
+    formSection: {
+        gap: 24,
+    },
+    inputGroup: {
+        gap: 8,
+    },
+    labelRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    labelText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: '#9CA3AF',
+        letterSpacing: 1,
+    },
+    helperText: {
+        fontSize: 10,
+        color: '#D1D5DB',
+        fontStyle: 'italic',
+    },
+    input: {
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        fontSize: 14,
+        color: '#1a1a1a',
+    },
+    textArea: {
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        borderRadius: 24,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        fontSize: 14,
+        color: '#1a1a1a',
+        height: 120,
+    },
+    unknownBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+    },
+    unknownBadgeActive: {
+        backgroundColor: '#1a1a1a',
+        borderColor: '#1a1a1a',
+    },
+    unknownBadgeInactive: {
+        backgroundColor: '#FFF',
+        borderColor: '#E5E7EB',
+    },
+    unknownText: {
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+    unknownTextActive: { color: '#FFF' },
+    unknownTextInactive: { color: '#6B7280' },
+    genreRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    genreChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 12,
+        backgroundColor: '#FFF',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    genreChipActive: {
+        backgroundColor: '#1a1a1a',
+        borderColor: '#1a1a1a',
+        ...shadowStyles.sm,
+    },
+    genreText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#9CA3AF',
+    },
+    genreTextActive: {
+        color: '#FFF',
+    },
+    ratingContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#F9FAFB',
+        borderRadius: 16,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+    },
+    starButton: {
+        flex: 1,
+        alignItems: 'center',
+    },
+});

@@ -23,7 +23,7 @@ LocaleConfig.defaultLocale = 'ko';
 
 export default function ArchiveScreen() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'feed' | 'calendar' | 'friends' | 'folders'>('feed');
+    const [activeTab, setActiveTab] = useState<'feed' | 'calendar' | 'friends'>('feed');
     const [user, setUser] = useState<any>(null);
     const [works, setWorks] = useState<any[]>([]);
     const [refreshing, setRefreshing] = useState(false);
@@ -186,15 +186,11 @@ function CalendarTab({ user, works, router, refreshing, onRefresh }: any) {
 
     return (
         <View style={styles.container}>
-             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Archive</Text>
-             </View>
-
              <ScrollView 
-                contentContainerStyle={{ paddingBottom: 100 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
              >
-                 <View style={styles.calendarWrapper}>
+                 <View style={styles.calendarContainer}>
                      <Calendar
                         key={myWorks.length} // Force re-render on data change
                         theme={{
@@ -380,8 +376,8 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     dayContainer: {
-        width: 50,
-        height: 50,
+        width: '100%',
+        aspectRatio: 1,
         padding: 2,
     },
     cellContent: {
