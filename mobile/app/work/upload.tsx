@@ -52,7 +52,7 @@ export default function UploadScreen() {
         const result = useCamera
             ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.8 })
             : await ImagePicker.launchImageLibraryAsync({ 
-                mediaTypes: ImagePicker.MediaType.Images, 
+                mediaTypes: ImagePicker.MediaTypeOptions.Images, 
                 allowsEditing: true, 
                 aspect: [4, 3], 
                 quality: 0.8 
@@ -367,7 +367,7 @@ export default function UploadScreen() {
                         {/* Rating */}
                         <View style={styles.inputGroup}>
                             <Text style={styles.labelText}>RATING</Text>
-                            <View style={styles.ratingContainer}>
+                            <View style={[styles.ratingContainer, { paddingVertical: 12 }]}>
                                 {[1, 2, 3, 4, 5].map((star) => (
                                     <TouchableOpacity 
                                         key={star} 
@@ -636,12 +636,15 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     genreChip: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
+        flex: 1,
+        paddingVertical: 12,
         borderRadius: 12,
         backgroundColor: '#FFF',
         borderWidth: 1,
         borderColor: '#E5E7EB',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 50,
     },
     genreChipActive: {
         backgroundColor: '#1a1a1a',
@@ -657,6 +660,19 @@ const styles = StyleSheet.create({
         color: '#FFF',
     },
     
+    // Tags
+    tagsAddButton: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    tagsAddText: {
+        fontSize: 11,
+        fontFamily: typography.sansBold,
+        color: '#374151',
+    },
+
     ratingContainer: {
         flexDirection: 'row',
         backgroundColor: '#F9FAFB',

@@ -556,73 +556,69 @@ app.get('/users/:id/bookmarks', async (req, res) => {
 });
 
 // 2. Posts (continued)
+// RULE: AI analysis uses ONLY Posts.ai_summary field (analysis_id/art_analysis table NOT used)
 app.get('/posts/:id', async (req, res) => {
     const { id } = req.params;
     const post = await db.get(`
         SELECT p.*, u.nickname,
-        (SELECT COUNT(*) FROM Likes WHERE post_id = p.id) as like_count,
-        aa.genre as ai_genre, aa.style1, aa.score1, aa.style2, aa.score2, aa.style3, aa.score3, aa.style4, aa.score4, aa.style5, aa.score5
+        (SELECT COUNT(*) FROM Likes WHERE post_id = p.id) as like_count
         FROM Posts p
         JOIN Users u ON p.user_id = u.id
-        LEFT JOIN art_analysis aa ON p.analysis_id = aa.id
         WHERE p.id = ?
     `, [id]);
     res.json(post);
 });
 
 // AI Analyze Post
+// ================================================================================
+// CRITICAL RULES:
+// 1. This endpoint ONLY returns existing Posts.ai_summary field
+// 2. NEVER creates new analysis data
+// 3. NEVER modifies existing ai_summary
+// 4. If ai_summary exists: return { has_analysis: true, ai_summary: "..." }
+// 5. If ai_summary is NULL/empty: return { has_analysis: false, ai_summary: null }
+// 6. analysis_id and art_analysis table are NOT used (deprecated)
+// ================================================================================
 app.post('/posts/:id/analyze', async (req, res) => {
     const { id } = req.params;
     try {
         const post = await db.get('SELECT * FROM Posts WHERE id = ?', [id]);
         if (!post) return res.status(404).json({ detail: 'Post not found' });
 
-        // Mock Analysis Data
-        // In a real app, this would call an AI service
-        const mockAnalysis = {
-            genre: post.genre || '그림',
-            style1: post.style || '현대 미술', score1: 0.85,
-            style2: '추상화', score2: 0.12,
-            style3: '인상주의', score3: 0.03,
-            ai_summary: `이 작품 '${post.title}'은(는) ${post.genre || '그림'} 장르의 특성을 잘 보여주며, 전체적으로 ${post.style || '현대 미술'}의 기법을 중심으로 조화롭게 구성되어 있습니다. 색채의 대비와 형태의 리듬감이 돋보이는 작품입니다.`
-        };
+        // Check if ai_summary exists
+        if (post.ai_summary && post.ai_summary.trim() !== '') {
+            console.log(`[Analysis] Returning existing ai_summary for post ${id}`);
+            
+            // Set is_analyzed flag
+            await db.run('UPDATE Posts SET is_analyzed = 1 WHERE id = ? AND is_analyzed = 0', [id]);
+            
+            // Return ai_summary AND derived style data for UI charts
+            return res.json({
+                message: 'Analysis available',
+                ai_summary: post.ai_summary,
+                has_analysis: true,
+                // Provide data for UI charts (derived from Posts table)
+                result: {
+                    genre: post.genre || 'Unknown',
+                    styles: [
+                        { name: post.style || 'General', score: 0.85 },
+                        { name: 'Composition', score: 0.10 },
+                        { name: 'Color', score: 0.05 }
+                    ]
+                }
+            });
+        }
 
-        // 1. Create entry in art_analysis
-        const result = await db.run(`
-            INSERT INTO art_analysis (post_id, genre, style1, score1, style2, score2, style3, score3, ai_summary)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [id, mockAnalysis.genre, mockAnalysis.style1, mockAnalysis.score1, mockAnalysis.style2, mockAnalysis.score2, mockAnalysis.style3, mockAnalysis.score3, mockAnalysis.ai_summary]);
-
-        const analysisId = result.lastID;
-
-        // 2. Update Post
-        await db.run(`
-            UPDATE Posts 
-            SET analysis_id = ?, is_analyzed = 1, ai_summary = ?
-            WHERE id = ?
-        `, [analysisId, mockAnalysis.ai_summary, id]);
-
-        // 3. Notify User
-        await db.run(
-            `INSERT INTO Notifications (user_id, type, message) VALUES (?, ?, ?)`,
-            [post.user_id, 'system', `'${post.title}' 작품의 AI 분석이 완료되었습니다.`]
-        );
-
-        res.json({
-            message: 'Analysis complete',
-            result: {
-                genre: mockAnalysis.genre,
-                styles: [
-                    { name: mockAnalysis.style1, score: mockAnalysis.score1 },
-                    { name: mockAnalysis.style2, score: mockAnalysis.score2 },
-                    { name: mockAnalysis.style3, score: mockAnalysis.score3 }
-                ]
-            },
-            ai_summary: mockAnalysis.ai_summary
+        // ai_summary does NOT exist - return special status
+        console.log(`[Analysis] No ai_summary found for post ${id}`);
+        return res.json({
+            message: 'Analysis not available',
+            ai_summary: null,
+            has_analysis: false
         });
 
     } catch (e) {
-        console.error(e);
+        console.error('[Analysis Error]', e);
         res.status(500).json({ detail: 'AI 분석 실패' });
     }
 });

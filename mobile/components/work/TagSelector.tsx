@@ -78,110 +78,112 @@ export default function TagSelector({ selectedTags, onTagsChange }: TagSelectorP
 
     return (
         <View style={styles.container}>
-            {/* 1. Selected Tags (Chips) */}
-            <View style={styles.selectedContainer}>
-                {selectedTags.map((tag) => (
-                    <View key={tag.id} style={styles.chip}>
-                        <TagIcon size={12} color="#9CA3AF" />
-                        <Text style={styles.chipText}>{tag.label}</Text>
-                        <TouchableOpacity onPress={() => removeTag(tag.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                            <X size={14} color="#9CA3AF" />
-                        </TouchableOpacity>
-                    </View>
-                ))}
-            </View>
+            {/* 1. Selected Tags (Chips) - Only show if there are tags */}
+            {selectedTags.length > 0 && (
+                <View style={styles.selectedContainer}>
+                    {selectedTags.map((tag) => (
+                        <View key={tag.id} style={styles.chip}>
+                            <TagIcon size={12} color="#9CA3AF" />
+                            <Text style={styles.chipText}>{tag.label}</Text>
+                            <TouchableOpacity onPress={() => removeTag(tag.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                <X size={14} color="#9CA3AF" />
+                            </TouchableOpacity>
+                        </View>
+                    ))}
+                </View>
+            )}
 
-            {/* 2. Selection Navigation */}
+            {/* 2. Selection Navigation - Always Visible */}
             <View style={styles.selectorBox}>
                 {/* High Categories (Tabs) */}
                 <View style={styles.highTabs}>
-                    {Object.keys(TAG_DATA).map((high) => (
-                        <TouchableOpacity
-                            key={high}
-                            onPress={() => handleHighClick(high)}
-                            style={[
-                                styles.highTab,
-                                activeHigh === high && styles.highTabActive
-                            ]}
-                        >
-                            <Text style={[
-                                styles.highTabText,
-                                activeHigh === high && styles.highTabTextActive
-                            ]}>
-                                {high}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-
-                {/* Middle Categories */}
-                {activeHigh && (
-                    <View style={styles.middleGrid}>
-                        {Object.keys(TAG_DATA[activeHigh]).map((middle) => {
-                            const id = `${activeHigh}-${middle}`;
-                            const isLeaf = selectedTags.some(t => t.id === id);
-                            const hasChild = selectedTags.some(t => t.id.startsWith(id + '-'));
-                            const isActive = activeMiddle === middle;
-
-                            return (
-                                <TouchableOpacity
-                                    key={middle}
-                                    onPress={() => handleMiddleClick(middle)}
-                                    style={[
-                                        styles.middleButton,
-                                        isActive && styles.middleButtonActive,
-                                        (isLeaf || hasChild) && !isActive && styles.middleButtonSelectedLeaf
-                                    ]}
-                                >
-                                    <Text style={[
-                                        styles.middleText,
-                                        isActive && styles.middleTextActive,
-                                        (isLeaf || hasChild) && !isActive && styles.middleTextSelectedLeaf
-                                    ]}>
-                                        {middle}
-                                    </Text>
-                                    
-                                    {isActive ? (
-                                        <ChevronRight size={14} color="#FFF" />
-                                    ) : (isLeaf || hasChild) ? (
-                                        <View style={styles.dot} />
-                                    ) : (
-                                        <ChevronRight size={14} color="#D1D5DB" />
-                                    )}
-                                </TouchableOpacity>
-                            );
-                        })}
+                        {Object.keys(TAG_DATA).map((high) => (
+                            <TouchableOpacity
+                                key={high}
+                                onPress={() => handleHighClick(high)}
+                                style={[
+                                    styles.highTab,
+                                    activeHigh === high && styles.highTabActive
+                                ]}
+                            >
+                                <Text style={[
+                                    styles.highTabText,
+                                    activeHigh === high && styles.highTabTextActive
+                                ]}>
+                                    {high}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
                     </View>
-                )}
 
-                {/* Low Categories */}
-                {activeHigh && activeMiddle && TAG_DATA[activeHigh]?.[activeMiddle] && (
-                    <View style={styles.lowContainer}>
-                        {TAG_DATA[activeHigh][activeMiddle].map((low) => {
-                            const path = [activeHigh, activeMiddle, low];
-                            const id = path.join('-');
-                            const isSelected = selectedTags.some(t => t.id === id);
+                    {/* Middle Categories */}
+                    {activeHigh && (
+                        <View style={styles.middleGrid}>
+                            {Object.keys(TAG_DATA[activeHigh as keyof typeof TAG_DATA]).map((middle) => {
+                                const id = `${activeHigh}-${middle}`;
+                                const isLeaf = selectedTags.some(t => t.id === id);
+                                const hasChild = selectedTags.some(t => t.id.startsWith(id + '-'));
+                                const isActive = activeMiddle === middle;
 
-                            return (
-                                <TouchableOpacity
-                                    key={low}
-                                    onPress={() => toggleLowTag(low, path)}
-                                    style={[
-                                        styles.lowButton,
-                                        isSelected && styles.lowButtonActive
-                                    ]}
-                                >
-                                    <Text style={[
-                                        styles.lowText,
-                                        isSelected && styles.lowTextActive
-                                    ]}>
-                                        {low}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-                )}
+                                return (
+                                    <TouchableOpacity
+                                        key={middle}
+                                        onPress={() => handleMiddleClick(middle)}
+                                        style={[
+                                            styles.middleButton,
+                                            isActive && styles.middleButtonActive,
+                                            (isLeaf || hasChild) && !isActive && styles.middleButtonSelectedLeaf
+                                        ]}
+                                    >
+                                        <Text style={[
+                                            styles.middleText,
+                                            isActive && styles.middleTextActive,
+                                            (isLeaf || hasChild) && !isActive && styles.middleTextSelectedLeaf
+                                        ]}>
+                                            {middle}
+                                        </Text>
+                                        
+                                        {isActive ? (
+                                            <ChevronRight size={14} color="#FFF" />
+                                        ) : (isLeaf || hasChild) ? (
+                                            <View style={styles.dot} />
+                                        ) : (
+                                            <ChevronRight size={14} color="#D1D5DB" />
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    )}
+
+                    {/* Low Categories */}
+                    {activeHigh && activeMiddle && (TAG_DATA[activeHigh as keyof typeof TAG_DATA] as any)?.[activeMiddle] && (
+                        <View style={styles.lowContainer}>
+                            {(TAG_DATA[activeHigh as keyof typeof TAG_DATA] as any)[activeMiddle].map((low: string) => {
+                                const path = [activeHigh, activeMiddle, low];
+                                const id = path.join('-');
+                                const isSelected = selectedTags.some(t => t.id === id);
+
+                                return (
+                                    <TouchableOpacity
+                                        key={low}
+                                        onPress={() => toggleLowTag(low, path)}
+                                        style={[
+                                            styles.lowButton,
+                                            isSelected && styles.lowButtonActive
+                                        ]}
+                                    >
+                                        <Text style={[
+                                            styles.lowText,
+                                            isSelected && styles.lowTextActive
+                                        ]}>
+                                            {low}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    )}
             </View>
         </View>
     );
@@ -195,7 +197,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 8,
-        minHeight: 32,
     },
     chip: {
         flexDirection: 'row',

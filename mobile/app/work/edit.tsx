@@ -258,7 +258,7 @@ export default function EditWorkScreen() {
                         {/* Rating */}
                         <View style={styles.inputGroup}>
                             <Text style={styles.labelText}>RATING</Text>
-                            <View style={styles.ratingContainer}>
+                            <View style={[styles.ratingContainer, { paddingVertical: 12 }]}>
                                 {[1, 2, 3, 4, 5].map((star) => (
                                     <TouchableOpacity 
                                         key={star} 
@@ -442,12 +442,15 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     genreChip: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
+        flex: 1,
+        paddingVertical: 12,
         borderRadius: 12,
         backgroundColor: '#FFF',
         borderWidth: 1,
         borderColor: '#E5E7EB',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 50,
     },
     genreChipActive: {
         backgroundColor: '#1a1a1a',
@@ -461,6 +464,18 @@ const styles = StyleSheet.create({
     },
     genreTextActive: {
         color: '#FFF',
+    },
+    // Tags
+    tagsAddButton: {
+        backgroundColor: '#F3F4F6',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    tagsAddText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: '#374151',
     },
     ratingContainer: {
         flexDirection: 'row',
