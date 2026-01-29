@@ -21,13 +21,7 @@ export default function CustomHeader() {
 
                 {/* Right Actions */}
                 <View style={styles.actionSection}>
-                    {/* Language Toggle (Static for now) */}
-                    <TouchableOpacity style={styles.langButton}>
-                        <Globe size={16} color="#6B7280" />
-                        <Text style={[styles.langText, styles.activeLang]}>KO</Text>
-                        <Text style={styles.langDivider}>/</Text>
-                        <Text style={styles.langText}>EN</Text>
-                    </TouchableOpacity>
+
 
                     {/* Notification */}
                     <TouchableOpacity style={styles.notifButton} onPress={() => router.push('/notifications')}>

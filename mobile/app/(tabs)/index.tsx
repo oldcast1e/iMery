@@ -1,11 +1,11 @@
-import { View, Text, FlatList, RefreshControl, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, FlatList, RefreshControl, ActivityIndicator, Alert, StyleSheet, TouchableOpacity } from 'react-native';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '@services/api';
-import HighlightCarousel from '../../components/home/HighlightCarousel';
+import HomeBannerSlider from '../../components/home/HomeBannerSlider';
 import CategoryTabs from '../../components/home/CategoryTabs';
 import ActionBar from '../../components/home/ActionBar';
 import FilterChips from '../../components/home/FilterChips';
@@ -19,6 +19,7 @@ export default function HomeScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [user, setUser] = useState<any>(null);
+    const [visibleCount, setVisibleCount] = useState(5); // Pagination State
 
     // Filter States
     const [searchQuery, setSearchQuery] = useState('');
@@ -179,7 +180,7 @@ export default function HomeScreen() {
             ) : (
                 <FlatList
                     key={layout} // Force re-render when columns change
-                    data={processedWorks}
+                    data={processedWorks.slice(0, visibleCount)} // Pagination Slice
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={renderItem}
                     numColumns={layout === 'list' ? 1 : (layout === 'medium' ? 2 : 3)}
@@ -187,11 +188,7 @@ export default function HomeScreen() {
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                     ListHeaderComponent={
                         <>
-                            <HighlightCarousel 
-                                works={works} 
-                                onWorkClick={(work) => router.push({ pathname: '/work/[id]', params: { id: work.id } })}
-                                onMoreClick={() => router.push({ pathname: '/(tabs)/community', params: { openFolder: 'all' } })}
-                            />
+                            <HomeBannerSlider />
                             
                             {/* CategoryTabs has bottom padding inside or we just rely on tight spacing */}
                             <CategoryTabs 
@@ -227,6 +224,32 @@ export default function HomeScreen() {
                             <Text style={styles.emptyText}>아직 기록된 작품이 없습니다.</Text>
                             <Text style={styles.emptySubText}>당신의 감각을 깨우는 작품을 찾아 기록해보세요.</Text>
                         </View>
+                    }
+                    ListFooterComponent={
+                        visibleCount < processedWorks.length ? (
+                            <View style={{ paddingHorizontal: 16, paddingBottom: 24 }}>
+                                <TouchableOpacity 
+                                    onPress={() => setVisibleCount(prev => prev + 5)}
+                                    activeOpacity={0.7}
+                                    style={{
+                                        backgroundColor: '#F3F4F6', // bg-gray-100
+                                        paddingVertical: 14,
+                                        borderRadius: 12,
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        marginTop: 16
+                                    }}
+                                >
+                                    <Text style={{ 
+                                        color: '#6B7280', // text-gray-500
+                                        fontSize: 14,
+                                        fontFamily: typography.sansBold // Use bold for button text
+                                    }}>
+                                        더보기 (+5)
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : null
                     }
                 />
             )}

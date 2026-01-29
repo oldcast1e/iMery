@@ -1,31 +1,22 @@
 import React from 'react';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { View, TouchableOpacity, StyleSheet, Image, Keyboard, Platform } from 'react-native';
 import { Home, Grid3x3, Archive, User, Plus, Newspaper } from 'lucide-react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { colors, shadowStyles } from '../../constants/designSystem';
 
-export default function CustomTabBar() {
+export default function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const router = useRouter();
-  const pathname = usePathname();
-
+  
   // Define the exact tabs as per Web Design
   // Web: [Home, Works, Add, Archive, My]
   const tabs = [
-    { id: 'index', label: '홈', icon: Home, route: '/' },
-    { id: 'community', label: '피드', icon: Newspaper, route: '/community' }, // Changed to Newspaper and '피드'
+    { id: 'index', label: '홈', icon: Home },
+    { id: 'community', label: '피드', icon: Newspaper }, // Changed to Newspaper and '피드'
     { id: 'add', label: '추가', icon: Plus, isAction: true },
-    { id: 'archive', label: '아카이브', icon: Archive, route: '/archive' },
-    { id: 'profile', label: '마이', icon: User, route: '/profile' },
+    { id: 'archive', label: '아카이브', icon: Archive },
+    { id: 'profile', label: '마이', icon: User },
   ];
-
-  const handlePress = (tab: any) => {
-    if (tab.isAction) {
-      router.push('/work/upload');
-      return;
-    }
-    
-    router.push(tab.route);
-  };
 
   // Optional: Hide tab bar when keyboard is open
   const [visible, setVisible] = React.useState(true);
@@ -44,17 +35,11 @@ export default function CustomTabBar() {
     <View style={styles.overlayContainer}>
       <View style={styles.container}>
         {tabs.map((tab) => {
-          const isFocused = tab.route === '/' 
-            ? pathname === '/' 
-            : tab.route ? pathname.startsWith(tab.route) : false;
-
-          const Icon = tab.icon;
-
           if (tab.isAction) {
              return (
                <TouchableOpacity
                  key={tab.id}
-                 onPress={() => handlePress(tab)}
+                 onPress={() => router.push('/work/upload')}
                  style={styles.actionButtonWrapper}
                  activeOpacity={0.8}
                >
@@ -65,10 +50,32 @@ export default function CustomTabBar() {
              );
           }
 
+          // Find the route in the navigation state that matches the tab id
+          const route = state.routes.find(r => r.name === tab.id);
+          
+          // If a route doesn't exist for a tab item (shouldn't happen if configured correctly), don't render it or render disabled
+          if (!route) return null;
+
+          const isFocused = state.index === state.routes.indexOf(route);
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name, route.params);
+            }
+          };
+
+          const Icon = tab.icon;
+
           return (
             <TouchableOpacity
               key={tab.id}
-              onPress={() => handlePress(tab)}
+              onPress={onPress}
               style={styles.tabItem}
               activeOpacity={0.7}
             >
@@ -109,12 +116,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '90%',
     maxWidth: 400,
-    // Apple-like shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 10,
     borderWidth: 1,
     borderColor: '#F3F4F6',
   },

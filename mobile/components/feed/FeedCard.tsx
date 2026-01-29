@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Globe, Users, Lock, Bookmark } from 'lucide-react-native';
+import { Heart, MessageCircle, Share2, Globe, Users, Lock, Bookmark } from 'lucide-react-native';
 import { colors, shadowStyles, typography } from '../../constants/designSystem';
 import { getImageUrl } from '../../utils/imageHelper';
 
@@ -46,8 +46,12 @@ export default function FeedCard({ work, onPress, onLike, onComment, onShare, on
                         </View>
                     </View>
                 </View>
-                <TouchableOpacity style={styles.moreBtn}>
-                    <MoreHorizontal size={20} color={colors.gray500} />
+                <TouchableOpacity style={styles.moreBtn} onPress={onBookmark}>
+                    <Bookmark 
+                        size={24} 
+                        color={work.is_bookmarked ? colors.primary : colors.gray400} 
+                        fill={work.is_bookmarked ? colors.primary : 'none'}
+                    />
                 </TouchableOpacity>
             </View>
 
@@ -94,17 +98,10 @@ export default function FeedCard({ work, onPress, onLike, onComment, onShare, on
                     <MessageCircle size={20} color={colors.gray500} />
                     <Text style={styles.actionText}>Comment</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtn} onPress={onBookmark}>
-                    <Bookmark 
-                        size={20} 
-                        color={work.is_bookmarked ? colors.primary : colors.gray500} 
-                        fill={work.is_bookmarked ? colors.primary : 'none'}
-                    />
-                    <Text style={[styles.actionText, work.is_bookmarked && styles.activeActionText]}>Save</Text>
-                </TouchableOpacity>
+
                  <TouchableOpacity style={styles.actionBtn} onPress={onShare}>
                     <Share2 size={20} color={colors.gray500} />
-                    {/* <Text style={styles.actionText}>Share</Text> */}
+                    <Text style={styles.actionText}>Share</Text>
                 </TouchableOpacity>
             </View>
         </View>
