@@ -214,6 +214,7 @@ export const initDb = async () => {
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN analysis_id INT"); } catch (e) { }
   // Use TINYINT(1) for MySQL/TiDB compatibility instead of BOOLEAN
   try { await pool.execute("ALTER TABLE Posts ADD COLUMN is_analyzed TINYINT(1) DEFAULT 0"); } catch (e) { }
+  try { await pool.execute("ALTER TABLE Posts ADD COLUMN visibility VARCHAR(20) DEFAULT 'public'"); } catch (e) { }
 
   // Art Analysis: Add potentially missing columns if table existed before schema update
   try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN genre VARCHAR(255)"); } catch (e) { }

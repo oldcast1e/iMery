@@ -6,7 +6,7 @@ export default function TabLayout() {
   return (
     <Tabs
       tabBar={(props) => <CustomTabBar {...props} />}
-      sceneContainerStyle={{ backgroundColor: '#f9f9f7' }}
+
       screenOptions={{
         header: () => <CustomHeader />,
         headerShown: true,

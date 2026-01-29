@@ -148,8 +148,8 @@ export default {
 
     // Interactions
     toggleLike: async (postId: string | number, userId: string | number) => {
-        // Server: app.post('/posts/:id/likes', { user_id })
-        const { data } = await api.post(`/posts/${postId}/likes`, { user_id: userId });
+        // Server: app.post('/posts/:id/like') - Uses token for auth
+        const { data } = await api.post(`/posts/${postId}/like`);
         return data;
     },
 
@@ -232,4 +232,28 @@ export default {
         const { data } = await api.get(`/folders/${folderId}/items`);
         return data;
     },
+
+    getFeed: async (type: 'community' | 'following', userId?: number | string) => {
+        const { data } = await api.get('/posts/', {
+            params: { 
+                type, 
+                user_id: userId,
+                viewer_id: userId // Fix: Pass viewer_id for is_liked check
+            }
+        });
+        return data.posts;
+    },
+    // Feed Interactions
+    likePost: async (postId: string | number) => {
+        // Fix: Route mismatch (server is singular /like)
+        const { data } = await api.post(`/posts/${postId}/like`);
+        return data;
+    },
+
+    bookmarkPost: async (postId: string | number) => {
+        const { data } = await api.post(`/posts/${postId}/bookmark`);
+        return data;
+    },
+
+    // Duplicates removed
 };

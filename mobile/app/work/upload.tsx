@@ -31,6 +31,7 @@ export default function UploadScreen() {
         rating: 5,
         review: '',
         tags: [] as { id: string; label: string; path: string[] }[],
+        visibility: 'public', // ADDED
     });
 
     // UI States
@@ -130,6 +131,8 @@ export default function UploadScreen() {
             data.append('genre', formData.genre);
             data.append('style', formData.style);
             data.append('rating', String(formData.rating));
+            data.append('visibility', formData.visibility); // ADDED
+            
             
             // Tags: Send array of labels or objects? ReviewForm sending array of objects, 
             // but mobile api usually expects JSON string if it's a complex object or just labels.
@@ -379,6 +382,30 @@ export default function UploadScreen() {
                                             color={star <= formData.rating ? "#FACC15" : "#E5E7EB"} 
                                             fill={star <= formData.rating ? "#FACC15" : "none"} 
                                         />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+
+                        {/* Visibility */}
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.labelText}>VISIBILITY (공개 범위)</Text>
+                            <View style={styles.visibilityContainer}>
+                                {['public', 'friends', 'private'].map((v) => (
+                                    <TouchableOpacity
+                                        key={v}
+                                        onPress={() => setFormData(prev => ({ ...prev, visibility: v }))}
+                                        style={[
+                                            styles.visibilityButton,
+                                            formData.visibility === v && styles.visibilityButtonActive
+                                        ]}
+                                    >
+                                        <Text style={[
+                                            styles.visibilityText,
+                                            formData.visibility === v && styles.visibilityTextActive
+                                        ]}>
+                                            {v === 'public' ? '전체 공개' : v === 'friends' ? '친구 공개' : '나만 보기'}
+                                        </Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
@@ -684,5 +711,31 @@ const styles = StyleSheet.create({
     starButton: {
         flex: 1,
         alignItems: 'center',
+    },
+
+    visibilityContainer: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    visibilityButton: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 12,
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        alignItems: 'center',
+    },
+    visibilityButtonActive: {
+        backgroundColor: '#1a1a1a',
+        borderColor: '#1a1a1a',
+    },
+    visibilityText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#6B7280',
+    },
+    visibilityTextActive: {
+        color: '#FFF',
     },
 });

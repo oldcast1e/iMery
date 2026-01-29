@@ -76,8 +76,9 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
-initDb().then(_db => {
+initDb().then(async _db => {
     db = _db;
+    // Database initialized in initDb including migrations
     console.log('Database initialized');
     app.listen(PORT, () => {
         console.log(`Server running on http://localhost:${PORT}`);
@@ -120,14 +121,57 @@ app.post('/users/login', async (req, res) => {
 
 // 2. Posts
 app.get('/posts/', async (req, res) => {
-    const posts = await db.all(`
-    SELECT Posts.*, Posts.is_analyzed, Users.nickname,
-    (SELECT COUNT(*) FROM Likes WHERE post_id = Posts.id) as like_count
-    FROM Posts 
-    LEFT JOIN Users ON Posts.user_id = Users.id 
-    ORDER BY created_at DESC
-  `);
-    res.json({ posts });
+    const { type, user_id } = req.query; // type: 'community' | 'following'
+
+    try {
+        let query = `
+            SELECT Posts.*, Posts.is_analyzed, Users.nickname, Users.profile_image_url as user_profile_image,
+            (SELECT COUNT(*) FROM Likes WHERE post_id = Posts.id) as like_count,
+            (SELECT COUNT(*) FROM Comments WHERE post_id = Posts.id) as comment_count,
+            EXISTS (SELECT 1 FROM Likes WHERE post_id = Posts.id AND user_id = ?) as is_liked,
+            EXISTS (SELECT 1 FROM Bookmarks WHERE post_id = Posts.id AND user_id = ?) as is_bookmarked
+            FROM Posts 
+            JOIN Users ON Posts.user_id = Users.id
+        `;
+        
+        // Params management for the subqueries
+        // We need 'current_user_id' for is_liked/is_bookmarked checks.
+        // The endpoint is public but interactions are user-specific. 
+        // If user_id is passed in query (for following feed), use it. Or better, check header?
+        // Simple approach: Use query param 'viewer_id' or just reuse 'user_id' if context implies 'viewer'.
+        // BUT 'user_id' currently means 'target user for following feed'.
+        // Let's expect an optional 'viewer_id' query param for interaction checks.
+        
+        const viewer_id = req.query.viewer_id || null;
+        let params = [viewer_id, viewer_id]; // For the two subqueries
+
+        if (type === 'following') {
+            if (!user_id) return res.status(400).json({ detail: 'User ID required for following feed' });
+            // Show Public/Friends posts from Friends
+            // Note: This requires Friendships table to be fully working.
+            query += `
+                WHERE Posts.visibility IN ('public', 'friends') 
+                AND Posts.user_id IN (
+                    SELECT addressee_id FROM Friendships WHERE requester_id = ? AND status = 'ACCEPTED'
+                    UNION
+                    SELECT requester_id FROM Friendships WHERE addressee_id = ? AND status = 'ACCEPTED'
+                )
+            `;
+            // Improved Friend Logic: Check both directions
+            params.push(user_id, user_id);
+        } else {
+            // Default: Community (Public only)
+            query += ` WHERE Posts.visibility = 'public'`;
+        }
+
+        query += ` ORDER BY Posts.created_at DESC`;
+
+        const posts = await db.all(query, params);
+        res.json({ posts });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ detail: 'Failed to fetch posts' });
+    }
 });
 
 app.get('/users/:id/likes', async (req, res) => {
@@ -139,9 +183,20 @@ app.get('/users/:id/likes', async (req, res) => {
 app.post('/posts/', upload.single('image'), async (req, res) => {
     // Supports both Multipart (with file) and JSON (base64 fallback or text only)
     // If file exists, use file path. If not, check body.image_url
-    const { user_id, title, artist_name, description, rating, ai_summary, music_url, work_date, genre, tags, style } = req.body;
+    const { user_id, title, artist_name, description, rating, ai_summary, music_url, work_date, genre, tags, style, visibility } = req.body;
     const finalGenre = genre || '그림';
+    const finalVisibility = visibility || 'public'; // 'public', 'friends', 'private'
     let image_url = req.body.image_url;
+
+    // Fix: Tags come as JSON string from FormData. Parse it first to avoid double-stringification.
+    let finalTags = tags;
+    try {
+        if (typeof tags === 'string') {
+            finalTags = JSON.parse(tags);
+        }
+    } catch (e) {
+        finalTags = [];
+    }
 
     try {
         if (req.file) {
@@ -152,21 +207,21 @@ app.post('/posts/', upload.single('image'), async (req, res) => {
         }
 
         const result = await db.run(
-            `INSERT INTO Posts (user_id, title, artist_name, image_url, description, rating, ai_summary, music_url, work_date, genre, tags, style) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO Posts (user_id, title, artist_name, image_url, description, rating, ai_summary, music_url, work_date, genre, tags, style, visibility) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-                user_id || null, 
-                title || 'Untitled', 
-                artist_name || 'Unknown', 
-                image_url || null, 
+                user_id, 
+                title, 
+                artist_name, 
+                image_url, 
                 description || '', 
-                rating || 0, 
-                ai_summary || null, 
-                music_url || null, 
+                rating, 
+                ai_summary || null, // Fix: Ensure undefined becomes null
+                music_url || null,  // Fix: Ensure undefined becomes null
                 work_date || new Date().toISOString().split('T')[0].replace(/-/g, '.'), 
                 finalGenre, 
-                tags || '[]', 
-                style || ''
+                JSON.stringify(finalTags || []), 
+                style || '',
+                finalVisibility
             ]
         );
         res.json({ message: '업로드 성공', id: result.lastID });
@@ -179,7 +234,12 @@ app.post('/posts/', upload.single('image'), async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ detail: '업로드 실패' });
+        res.status(500).json({ 
+            detail: '업로드 실패', 
+            error: error.message, 
+            sql: error.sql, // Optional: if using mysql driver that exposes this
+            sqlMessage: error.sqlMessage 
+        });
     }
 });
 
@@ -194,6 +254,83 @@ app.delete('/posts/:id', async (req, res) => {
         res.json({ message: '삭제 성공' });
     } catch (e) {
         res.status(500).json({ detail: '삭제 실패' });
+    }
+});
+
+// --- Interactions ---
+
+// Toggle Like
+app.post('/posts/:id/like', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const user_id = req.user.id;
+    try {
+        const existing = await db.get('SELECT * FROM Likes WHERE post_id = ? AND user_id = ?', [id, user_id]);
+        if (existing) {
+            await db.run('DELETE FROM Likes WHERE post_id = ? AND user_id = ?', [id, user_id]);
+            res.json({ liked: false });
+        } else {
+            await db.run('INSERT INTO Likes (post_id, user_id) VALUES (?, ?)', [id, user_id]);
+            res.json({ liked: true });
+        }
+    } catch (e) {
+        res.status(500).json({ detail: 'Like failed' });
+    }
+});
+
+// Toggle Bookmark
+app.post('/posts/:id/bookmark', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const user_id = req.user.id;
+    try {
+        const existing = await db.get('SELECT * FROM Bookmarks WHERE post_id = ? AND user_id = ?', [id, user_id]);
+        if (existing) {
+            await db.run('DELETE FROM Bookmarks WHERE post_id = ? AND user_id = ?', [id, user_id]);
+            res.json({ bookmarked: false });
+        } else {
+            await db.run('INSERT INTO Bookmarks (post_id, user_id, created_at) VALUES (?, ?, ?)', [id, user_id, new Date().toISOString()]);
+            res.json({ bookmarked: true });
+        }
+    } catch (e) {
+        res.status(500).json({ detail: 'Bookmark failed' });
+    }
+});
+
+// Get Comments
+app.get('/posts/:id/comments', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const comments = await db.all(`
+            SELECT Comments.*, Users.nickname, Users.profile_image_url 
+            FROM Comments 
+            JOIN Users ON Comments.user_id = Users.id 
+            WHERE post_id = ? 
+            ORDER BY created_at ASC
+        `, [id]);
+        res.json(comments);
+    } catch (e) {
+        res.status(500).json({ detail: 'Failed to fetch comments' });
+    }
+});
+
+// Add Comment
+app.post('/posts/:id/comments', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const { content } = req.body;
+    const user_id = req.user.id;
+    try {
+        const result = await db.run(
+            'INSERT INTO Comments (post_id, user_id, content, created_at) VALUES (?, ?, ?, ?)',
+            [id, user_id, content, new Date().toISOString()]
+        );
+        const newComment = await db.get(`
+            SELECT Comments.*, Users.nickname, Users.profile_image_url 
+            FROM Comments 
+            JOIN Users ON Comments.user_id = Users.id 
+            WHERE Comments.id = ?
+        `, [result.lastID]);
+        res.json(newComment);
+    } catch (e) {
+        res.status(500).json({ detail: 'Comment failed' });
     }
 });
 

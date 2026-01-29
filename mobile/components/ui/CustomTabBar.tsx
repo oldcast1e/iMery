@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Image, Keyboard, Platform } from 'react-native';
-import { Home, Grid3x3, Archive, User, Plus } from 'lucide-react-native';
+import { Home, Grid3x3, Archive, User, Plus, Newspaper } from 'lucide-react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { colors, shadowStyles } from '../../constants/designSystem';
 
@@ -12,7 +12,7 @@ export default function CustomTabBar() {
   // Web: [Home, Works, Add, Archive, My]
   const tabs = [
     { id: 'index', label: '홈', icon: Home, route: '/' },
-    { id: 'community', label: '작품', icon: Grid3x3, route: '/community' }, // Works mapped to Community tab
+    { id: 'community', label: '피드', icon: Newspaper, route: '/community' }, // Changed to Newspaper and '피드'
     { id: 'add', label: '추가', icon: Plus, isAction: true },
     { id: 'archive', label: '아카이브', icon: Archive, route: '/archive' },
     { id: 'profile', label: '마이', icon: User, route: '/profile' },

@@ -53,8 +53,16 @@ export default function EditWorkScreen() {
                 genre: work.genre || '그림',
                 rating: work.rating || 0,
                 review: work.description || '',
-                // Parse tags, fallback to empty array. Expecting Tag[] structure.
-                tags: typeof work.tags === 'string' ? JSON.parse(work.tags) : (work.tags || []),
+                // Robust parsing for tags (Handle potential double-encoding)
+                tags: (() => {
+                    try {
+                        let parsed = typeof work.tags === 'string' ? JSON.parse(work.tags) : work.tags;
+                        if (typeof parsed === 'string') parsed = JSON.parse(parsed); // Double encoded check
+                        return Array.isArray(parsed) ? parsed : [];
+                    } catch (e) {
+                        return [];
+                    }
+                })(),
             });
         } catch (e) {
             console.error(e);
