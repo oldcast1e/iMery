@@ -66,33 +66,25 @@ export default function WorkDetailScreen() {
     // - Both methods call stopAsync() then unloadAsync() for complete cleanup
     // ================================================================================
     
-    // Audio Cleanup on Leave (Focus Loss)
+    // Track if screen is focused to prevent playing after leave
+    const isFocusedRef = useRef(true);
+
     useFocusEffect(
         React.useCallback(() => {
+            isFocusedRef.current = true;
             return () => {
+                isFocusedRef.current = false;
                 // Cleanup when screen loses focus
                 if (soundRef.current) {
                     console.log('[Audio] Unloading sound on blur');
-                    soundRef.current.stopAsync().catch(() => {}); // Stop playback first
-                    soundRef.current.unloadAsync().catch(() => {}); // Then unload
+                    soundRef.current.stopAsync().catch(() => {});
+                    soundRef.current.unloadAsync().catch(() => {});
                     soundRef.current = null;
                     setIsPlaying(false);
                 }
             };
         }, [])
     );
-
-    // Additional cleanup on unmount
-    useEffect(() => {
-        return () => {
-            if (soundRef.current) {
-                console.log('[Audio] Unloading sound on unmount');
-                soundRef.current.stopAsync().catch(() => {});
-                soundRef.current.unloadAsync().catch(() => {});
-                soundRef.current = null;
-            }
-        };
-    }, []);
 
     // Load Data
     useEffect(() => {
@@ -148,15 +140,29 @@ export default function WorkDetailScreen() {
 
     const playMusic = async (url: string) => {
         try {
+            // Cancel/Unload previous sound if any
             if (soundRef.current) {
                 await soundRef.current.unloadAsync();
             }
             
             console.log('Loading sound:', url);
+            
+            // Create sound but don't auto-play yet if we want strict control, 
+            // but `shouldPlay: true` is convenient. 
+            // We'll stick to `shouldPlay: true` but immediately unload if race condition detected.
             const { sound: newSound } = await Audio.Sound.createAsync(
                 { uri: url },
                 { shouldPlay: true, isLooping: true }
             );
+
+            // AUTO-CORRECTION: If user left the screen while loading...
+            if (!isFocusedRef.current) {
+                console.log('[Audio] Loaded after blur. Unloading immediately.');
+                await newSound.stopAsync();
+                await newSound.unloadAsync();
+                return;
+            }
+
             soundRef.current = newSound;
             setIsPlaying(true);
         } catch (e) {

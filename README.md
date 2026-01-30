@@ -1,173 +1,130 @@
-# iMery - 미술 작품 감상 기록 및 소셜 커뮤니티 앱
+# iMery (v2.2) - Mobile Art Archive & Social Community
 
-> iMery : 작품을 듣는 시간
+> **iMery : 작품을 듣는 시간**
+>
+> 감상한 미술 작품을 기록하고, AI 분석으로 화풍을 발견하며, 친구들과 취향을 공유하는 **모바일 앱**입니다.
+> 기존 웹(v1.5)에서 **React Native + Expo (v2.x)** 로 완전히 전환되었습니다.
 
-iMery는 미술관에서 감상한 작품을 기록하고, 친구들과 감상을 공유하며 소통할 수 있는 Web-Community App입니다.
-React 기반의 프론트엔드와 Node.js/Express/TiDB 기반의 Full-Stack 애플리케이션입니다.
+---
 
-## 📌 버전 및 브랜치 관리 (Version & Branch)
+## 📌 최신 버전 (Version)
 
-현재 프로젝트는 기능 업데이트에 따라 여러 브랜치로 관리되고 있습니다. **최신 안정화 버전인 `v.2.1`**에서 작업을 진행하는 것을 권장합니다.
+| 버전     | 구분   | 상태       | 주요 특징                                                                       |
+| -------- | ------ | ---------- | ------------------------------------------------------------------------------- |
+| **v2.2** | Mobile | **Stable** | **UI Polish**: 홈 위젯(Carousel), 탭바 그림자 제거, "Safe Audio" 로딩 패턴 적용 |
+| v2.1     | Mobile | Legacy     | 피드/아카이브 탭 분리, 공개 범위 설정(친구공개), 캘린더 뷰                      |
+| v2.0     | Mobile | Legacy     | React Native + Expo 마이그레이션 완료                                           |
+| v1.5     | Web    | Deprecated | React + Vite 웹 버전 (더 이상 사용하지 않음)                                    |
+
+---
+
+## 🎨 주요 기능 (Key Features)
+
+### 1. 홈 (Home) & 아카이빙
+
+- **위젯 (New!)**: 최근 저장한 작품과 전시회 정보를 홈 상단 배너 슬라이드로 확인.
+- **무한 스크롤**: "더보기" 버튼을 통한 효율적인 작품 목록 로딩.
+- **AI 작품 분석**:
+  - 업로드된 이미지를 AI가 분석하여 **장르(화풍)와 감상 포인트** 요약.
+  - **시각화 차트**: 색채, 구성, 표현 등 예술적 요소를 그래프로 제공.
+- **오디오 도슨트 (Safe Audio)**:
+  - 작품 분위기에 어울리는 음악 자동 재생.
+  - **Safe Loading**: 페이지 이탈 시 즉시 재생을 중단하여 사용자 경험 보호.
+
+### 2. 소셜 커뮤니티 (Community)
+
+- **피드 탭**: 친구들의 새 게시글만 모아보는 전용 피드.
+- **친구 관리**: 닉네임 검으로 친구 요청/수락.
+- **공개 범위**: **전체 / 친구공개 / 나만보기** 설정으로 프라이버시 보호.
+- **소셜 액션**: 좋아요(💖), 댓글(💬), 북마크(🔖)로 소통.
+
+### 3. 아카이브 (Archive)
+
+- **캘린더 뷰**: 월별 감상 기록을 달력 형태로 직관적으로 확인.
+- **폴더링**: 북마크한 작품을 주제별 폴더로 정리 (예: 인상주의 모음).
+
+---
+
+## 🛠️ 기술 스택 (Tech Stack)
+
+### **Mobile App (Frontend)**
+
+| Category       | Stack                     | Description                     |
+| -------------- | ------------------------- | ------------------------------- |
+| **Framework**  | **Expo / React Native**   | 크로스 플랫폼 모바일 앱 개발    |
+| **Language**   | TypeScript                | 정적 타입 안정성 보장           |
+| **Styling**    | **NativeWind** (Tailwind) | 유틸리티 퍼스트 스타일링        |
+| **Navigation** | Expo Router               | 파일 기반 라우팅 시스템         |
+| **State**      | Zustand                   | 전역 상태 관리 (Auth, Theme)    |
+| **Storage**    | AsyncStorage              | 로컬 데이터 캐싱 및 로그인 유지 |
+| **Audio**      | Expo AV                   | 음악 재생 및 제어               |
+| **Media**      | Expo ImagePicker          | 카메라/갤러리 연동              |
+
+### **Server (Backend)**
+
+| Category      | Stack                  | Description                       |
+| ------------- | ---------------------- | --------------------------------- |
+| **Runtime**   | Node.js (v20+)         | 서버 런타임 환경                  |
+| **Framework** | Express                | REST API 서버                     |
+| **Database**  | **TiDB Cloud** (MySQL) | 확장 가능한 클라우드 데이터베이스 |
+| **Storage**   | **AWS S3**             | 이미지 파일 영구 저장             |
+| **Auth**      | JWT / Bcrypt           | 토큰 기반 인증 및 보안            |
+
+---
+
+## 🚀 설치 및 실행 (Setup & Run)
+
+이 프로젝트는 **Frontend(모바일)**와 **Backend(서버)**를 동시에 실행해야 합니다.
+
+### 자동 실행 (권장)
+
+루트 디렉토리의 스크립트를 사용하면 한 번에 실행할 수 있습니다.
 
 ```bash
-# 1. 원격 저장소의 최신 브랜치 정보 가져오기
-git fetch origin
-
-# 2. v.1.4 브랜치로 전환 및 로컬 생성
-git checkout v.1.4
-
-# 3. 브랜치 확인 (현재 활성화된 브랜치 옆에 * 가 표시됨)
-git branch
+./rebuild_and_start.sh
 ```
 
-### 버전 히스토리
+### 수동 실행
 
-| 버전      | 생성일         | 최근 수정          | 주요 변경사항                                                                                                                                                                                                                                                                                               |
-| --------- | -------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **v.2.1** | 26.01.30       | -                  | **New Feature**: 피드(Community/Following) 탭 분리, 아카이브(Folder/Calendar/Friends) 탭 분리<br>**Privacy**: 게시글 공개 범위(전체/친구/나만보기) 설정 추가<br>**UI**: 페이스북 스타일 피드 UI, 친구 찾기/추가 UI 개선<br>**Bug Fix**: 태그 더블 인코딩 수정, 업로드 500 에러 해결, 수정 시 리뷰 리셋 방지 |
-| **v.2.0** | -              | -                  | **Mobile Migration**: React Native + Expo 전환 완료                                                                                                                                                                                                                                                         |
-| **v.1.5** | 26.01.22 03:50 | **26.01.22 04:00** | **UI/UX 개선**: 음악 아이콘 위치 변경, 삭제 버튼(Red), 레이아웃 공백 조정<br>**기능 강화**: AI 분석 결과 자동 노출, 스크롤 최상단 이동, 음악 무조건 재생 및 1초 간격 반복(Loop)<br>**버그 수정**: 중복 import 에러 해결, Go-to-Top 버튼 삭제                                                                |
-| v.1.4     | 26.01.22 00:09 | 26.01.22 02:05     | **UI 개선**: WorksView 태그/버튼 디자인, 반응형 알림 시스템<br>**버그 수정**: 친구 검색 Filter 오류, 달력 필터링, AI 요약 표시<br>**보안**: 비밀번호 저장 일관성 확보, 평문 사용자 정리                                                                                                                     |
-| v.1.3     | -              | -                  | AI 분석 및 S3 통합                                                                                                                                                                                                                                                                                          |
-| v.1.1     | -              | -                  | 소셜 기능 확장                                                                                                                                                                                                                                                                                              |
-| v.1.0.1   | -              | -                  | 초기 안정화 버전                                                                                                                                                                                                                                                                                            |
-
----
-
-## 🎨 주요 기능
-
-### 1. 지능형 작품 아카이빙 (Advanced!)
-
-- ✅ **3단계 계층형 태그**: [작품/공간/경험] 구조로 세분화된 30여 개의 감각적 태그 제공 (아이콘 포함)
-- ✅ **화풍(Style) 분석 기록**: 인상주의, 표현주의 등 작품 고유의 스타일을 문자열로 추가 기록
-- ✅ **AI 기반 이미지 분석**: (진행 중) 업로드된 이미지를 AI가 분석하여 장르 및 화풍을 자동 추천
-- ✅ **음악(Audio) 결합**: 감상 당시의 느낌을 담은 음악 URL(유튜브 등)을 함께 저장 및 플레이어 재생
-- ✅ **유연한 레이아웃**: List, Grid, Large(피드형) 등 사용자가 원하는 뷰어 모드 지원
-
-### 2. 소셜 커뮤니티 (Social)
-
-- ✅ **실시간 친구 시스템**: 닉네임 검색을 통한 친구 요청/수락 및 친구 목록 관리
-- ✅ **독립된 피드**: 홈 탭에서는 나의 기록만, 아카이브 탭에서는 친구들의 새 소식만 자동으로 필터링
-- ✅ **공개 범위 설정**: **전체 공개(Community)**, **친구 공개(Following)**, **나만 보기(Private)** 설정 가능
-- ✅ **반응형 소셜 액션**: 실시간 좋아요(💖) 및 북마크(🔖) 기능을 통한 관심 작품 저장
-- ✅ **알림 센터**: 친구 요청 및 활동에 대한 알림을 즉시 확인 가능
-
-### 3. 프리미엄 UI/UX
-
-- ✅ **Modern & Glassmorphism**: 세련된 카드 디자인과 반투명 블러 효과를 적용한 프리미엄 UI
-- ✅ **스마트 캘린더**: 날짜별로 저장된 작품을 한눈에 확인하고 해당 날짜의 기록으로 바로 이동
-- ✅ **즉각적인 상태 피드백**: 모든 CRUD 작업에 대해 직관적인 토스트 메시지 및 애니메이션 제공
-- ✅ **애플 스타일 디자인**: 둥근 모서리와 유려한 트랜지션을 적용한 모던한 디자인 시스템
-
----
-
-## 🚀 설치 및 실행 방법 (매우 중요!)
-
-이 앱은 Frontend(화면)와 Backend(서버)가 각각 실행되어야 정상 작동합니다. 터미널 2개를 열어주세요.
-
-### 사전 요구사항
-
-- Node.js (v14 이상)
-- npm
-
-### 1️⃣ Backend 서버 실행 (터미널 1)
-
-데이터베이스와 API를 담당하는 서버를 먼저 켭니다.
+**터미널 1: 백엔드 서버**
 
 ```bash
-# 1. 서버 디렉토리로 이동
 cd server
-
-# 2. 의존성 설치 (최초 1회)
-npm install
-
-# 3. 서버 실행
-node index.js
-```
-
-_성공 시 메시지: `Server running on http://localhost:3000`_
-
-### 2️⃣ Frontend 앱 실행 (터미널 2)
-
-사용자가 보는 웹 화면을 실행합니다.
-
-```bash
-# 1. 프로젝트 루트 디렉토리로 이동 (새 터미널)
-cd /Users/apple/Desktop/React/iMery
-
-# 2. 의존성 설치 (최초 1회)
-npm install
-
-# 3. 앱 실행
+npm install  # (최초 1회)
 npm run dev
+# Server running on http://localhost:3001
 ```
 
-_성공 시 메시지: `Local: http://localhost:5173/`_
-
-### 3️⃣ 접속하기
-
-브라우저 주소창에 `http://localhost:5173` 을 입력하여 접속합니다.
-
----
-
-## 📖 사용 가이드
-
-### 회원가입 및 로그인
-
-1. 앱을 처음 실행하면 로그인/회원가입 화면이 나타납니다.
-2. 원하는 ID/PW/닉네임으로 가입 후 로그인하세요. (데이터는 로컬 DB인 `server/database.sqlite`에 저장됩니다)
-
-### 친구 추가 및 피드 보기
-
-1. 하단 네비게이션 맨 오른쪽 [마이] 탭 클릭
-2. 친구 찾기에서 친구의 닉네임 검색 후 '친구 요청'
-3. 상대방이 [마이] 탭에서 요청을 '수락'하면 친구 관계 성립
-4. 하단 [커뮤니티] (사람 2명 아이콘) 탭을 누르면 친구가 올린 글이 피드에 나타납니다.
-
-### 작품 올리기
-
-1. 하단 중앙 [+] 버튼 클릭
-2. 사진 선택 후 '화풍(Style)' 및 '태그(Tags)' 선택
-3. 내용 입력 후 업로드 (서버의 `uploads/` 폴더에 이미지 저장)
-4. 태그는 대분류-중분류-소분류를 선택할 수 있으며, 가장 구체적인 태그가 저장됩니다.
-
----
-
-## 🛠️ 기술 스택
-
-| Frontend | React 19, Vite | 최신 React 버전과 빠른 빌드 시스템 |
-| State | useLocalStorage, useState | 브라우저 저장소 연동 및 효율적인 상태 관리 |
-| Animation | Framer Motion | 부드럽고 고급스러운 UI 트랜지션 |
-| Icons | Lucide React | 확장성 높은 아이콘 시스템 |
-| Style | Tailwind CSS | Utility-first CSS 프레임워크 |
-| Backend | Node.js, Express | 가볍고 빠른 REST API 서버 |
-| Database | SQLite3, TiDB | 로컬 개발용 SQLite 및 클라우드 MySQL 환경 지원 |
-| Auth | JWT, bcrypt | 보안이 강화된 사용자 인증 기능 |
-
----
-
-## 🛠️ 트러블슈팅 (Troubleshooting)
-
-### ⚠️ `Error: listen EADDRINUSE: address already in use :::3001`
-
-이 에러는 이미 3001번 포트에서 다른 서버가 실행 중일 때 발생합니다. 아래 명령어로 기존 프로세스를 종료하세요.
-
-**Mac/Linux:**
+**터미널 2: 모바일 앱**
 
 ```bash
-kill -9 $(lsof -t -i:3001)
-```
-
-**Windows (PowerShell):**
-
-```powershell
-Stop-Process -Id (Get-NetTCPConnection -LocalPort 3001).OwningProcess -Force
+cd mobile
+npm install  # (최초 1회)
+npx expo start -c
+# QR 코드를 Expo Go 앱으로 스캔 (iOS/Android)
 ```
 
 ---
 
-## 👨‍💻 개발자 노트
+## 📁 프로젝트 구조 (Structure)
 
-- 이 프로젝트는 Single Page Application (SPA) 구조이나, Full-Stack 기능을 위해 로컬 API 서버와 연동됩니다.
-- DB 스키마는 서버 실행 시 `server/db.js`를 통해 자동으로 최신화(Migration)됩니다.
-- 이미지 파일은 API 서버의 `server/uploads` 디렉토리에 저장됩니다.
+```
+iMery/
+├── mobile/                 # React Native App (Expo)
+│   ├── app/                # Screens & Navigation (File-based)
+│   ├── components/         # Reusable UI Components
+│   ├── services/           # API Integration (Axios)
+│   └── constants/          # Design System (Colors, Typography)
+│
+├── server/                 # Node.js Express Server
+│   ├── index.js            # Server Entry Point & API Routes
+│   └── .env                # (Required) DB_HOST, AWS_KEY, etc.
+│
+├── README.md               # Project Documentation
+├── UpdataLog.md            # Version History & Todo (Renamed from memo.md)
+└── rebuild_and_start.sh    # Quick Start Script
+```
+
+---
+
+> Created by **Oldcastle** (iMery Team)

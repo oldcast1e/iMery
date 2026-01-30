@@ -132,11 +132,11 @@ const styles = StyleSheet.create({
   activeIconContainer: {
     backgroundColor: '#000',
     transform: [{ scale: 1.1 }],
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 4 },
+    // shadowOpacity: 0.2,
+    // shadowRadius: 8,
+    // elevation: 5,
   },
   actionButtonWrapper: {
     top: 0, // In web it's inside nicely. Let's keep it centered in flex.
