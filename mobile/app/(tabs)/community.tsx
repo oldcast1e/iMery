@@ -219,7 +219,7 @@ export default function FeedScreen() {
                             work={item} 
                             onPress={() => router.push(`/work/${item.id}`)} 
                             onLike={() => handleLike(item.id)}
-                            onComment={() => router.push(`/work/${item.id}`)} // Navigate to detail for comments
+                            onComment={() => router.push({ pathname: `/work/${item.id}`, params: { focusComment: 'true' } })} // Navigate and scroll
                             onBookmark={() => handleBookmark(item.id)}
                         /> 
                     )}

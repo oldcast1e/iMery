@@ -14,9 +14,13 @@ import { colors, shadowStyles, typography } from '../../constants/designSystem';
 const { width } = Dimensions.get('window');
 
 export default function WorkDetailScreen() {
-    const { id } = useLocalSearchParams();
+    const { id, focusComment } = useLocalSearchParams();
     const router = useRouter();
     const insets = useSafeAreaInsets();
+
+    // Scroll Ref
+    const scrollViewRef = useRef<ScrollView>(null);
+    const commentsYRef = useRef<number>(0);
 
     const [work, setWork] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -29,6 +33,18 @@ export default function WorkDetailScreen() {
 
     const [comments, setComments] = useState<any[]>([]);
     const [commentText, setCommentText] = useState('');
+
+    // Auto-scroll to comments if requested
+    useEffect(() => {
+        if (focusComment === 'true' && !loading && work) {
+            // Small delay to ensure layout is ready
+            setTimeout(() => {
+                if (scrollViewRef.current && commentsYRef.current > 0) {
+                    scrollViewRef.current.scrollTo({ y: commentsYRef.current, animated: true });
+                }
+            }, 500);
+        }
+    }, [focusComment, loading, work]);
 
     // Clean up sound on unmount
     // Animation Values
@@ -366,6 +382,7 @@ export default function WorkDetailScreen() {
             // Simplified: If analyzed, just show it. 
             
             const chartData = getChartData();
+            const hasCharts = chartData.length > 0;
 
             return (
                 <LinearGradient
@@ -381,28 +398,30 @@ export default function WorkDetailScreen() {
                         <Text style={styles.analysisTitle}>AI 작품 분석</Text>
                     </View>
                     
-                    <Text style={styles.analysisText}>
+                    <Text style={[styles.analysisText, !hasCharts && { marginBottom: 0 }]}>
                         {effectiveData.ai_summary}
                     </Text>
 
                     {/* Charts (Restored & Robust) */}
-                    <View style={styles.chartContainer}>
-                        {chartData.map((data, i) => (
-                            <View key={i} style={styles.chartRow}>
-                                <View style={styles.chartLabelRow}>
-                                    <Text style={styles.chartLabel}>{data.name}</Text>
-                                    <Text style={styles.chartScore}>{Math.round(data.score * 100)}%</Text>
+                    {hasCharts && (
+                        <View style={styles.chartContainer}>
+                            {chartData.map((data, i) => (
+                                <View key={i} style={styles.chartRow}>
+                                    <View style={styles.chartLabelRow}>
+                                        <Text style={styles.chartLabel}>{data.name}</Text>
+                                        <Text style={styles.chartScore}>{Math.round(data.score * 100)}%</Text>
+                                    </View>
+                                    <View style={styles.chartTrack}>
+                                        <LinearGradient
+                                            colors={['#818cf8', '#a855f7']}
+                                            start={{x:0, y:0}} end={{x:1, y:0}}
+                                            style={[styles.chartBar, { width: `${data.score * 100}%` }]}
+                                        />
+                                    </View>
                                 </View>
-                                <View style={styles.chartTrack}>
-                                    <LinearGradient
-                                        colors={['#818cf8', '#a855f7']}
-                                        start={{x:0, y:0}} end={{x:1, y:0}}
-                                        style={[styles.chartBar, { width: `${data.score * 100}%` }]}
-                                    />
-                                </View>
-                            </View>
-                        ))}
-                    </View>
+                            ))}
+                        </View>
+                    )}
                 </LinearGradient>
             );
         }
@@ -504,6 +523,7 @@ export default function WorkDetailScreen() {
             </View>
 
             <ScrollView 
+                ref={scrollViewRef}
                 style={styles.bodyScroll} 
                 contentContainerStyle={styles.bodyContent}
                 showsVerticalScrollIndicator={false}
@@ -582,7 +602,13 @@ export default function WorkDetailScreen() {
                 </View>
                 
                 {/* Comments */}
-                <View style={[styles.section, { marginBottom: 40 }]}>
+                <View 
+                    style={[styles.section, { marginBottom: 40 }]}
+                    onLayout={(event) => {
+                         const layout = event.nativeEvent.layout;
+                         commentsYRef.current = layout.y;
+                    }}
+                >
                     <Text style={styles.sectionHeader}>댓글</Text>
                     {/* ... (Keep comment content) ... */}
                      <View style={styles.commentInputRow}>
@@ -682,6 +708,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'flex-start',
         marginBottom: 16,
+        position: 'relative', // Ensure absolute children position relative to this
     },
     pillRow: {
         flexDirection: 'row',
@@ -714,6 +741,9 @@ const styles = StyleSheet.create({
     actionButtons: {
         flexDirection: 'row',
         gap: 8,
+        position: 'absolute',
+        right: 0,
+        top: -18,
     },
     circleButton: {
         width: 40,

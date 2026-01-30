@@ -783,9 +783,9 @@ app.get('/users/:id/folders', async (req, res) => {
 
 // Create Folder (and optionally add items)
 app.post('/folders', async (req, res) => {
-    const { user_id, name, post_ids } = req.body; // post_ids is array
+    const { user_id, name, post_ids, color } = req.body; // post_ids is array
     try {
-        const result = await db.run('INSERT INTO Folders (user_id, name) VALUES (?, ?)', [user_id, name]);
+        const result = await db.run('INSERT INTO Folders (user_id, name, color) VALUES (?, ?, ?)', [user_id, name, color || null]);
         const folderId = result.lastID;
 
         if (post_ids && Array.isArray(post_ids) && post_ids.length > 0) {

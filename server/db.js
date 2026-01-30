@@ -231,5 +231,8 @@ export const initDb = async () => {
   try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN image_url TEXT"); } catch (e) { }
   try { await pool.execute("ALTER TABLE art_analysis ADD COLUMN music_url TEXT"); } catch (e) { }
 
+  // Folders: add color
+  try { await pool.execute("ALTER TABLE Folders ADD COLUMN color VARCHAR(20)"); } catch (e) { }
+
   return new DatabaseWrapper(pool);
 };

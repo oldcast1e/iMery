@@ -8,8 +8,9 @@ import { Calendar as CalendarIcon, Image as ImageIcon, Users, Search, UserMinus,
 import api from '@services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, shadowStyles, typography } from '../../constants/designSystem';
-import WorkCardGrid from '../../components/work/WorkCardGrid'; 
+import WorkCardList from '../../components/work/WorkCardList'; 
 import { getImageUrl } from '../../utils/imageHelper';
+import { folderColors } from '../../constants/folderColors';
 
 // Setup Calendar Locale
 LocaleConfig.locales['ko'] = {
@@ -104,9 +105,9 @@ function FolderTab({ user, works, refreshing, onRefresh }: any) {
     const [selectedFolder, setSelectedFolder] = useState<any>(null);
     const [bookmarkedWorks, setBookmarkedWorks] = useState<any[]>([]);
     
-    // Modal State
     const [modalVisible, setModalVisible] = useState(false);
     const [folderName, setFolderName] = useState('');
+    const [selectedColor, setSelectedColor] = useState(folderColors[0]);
     const [selectedWorks, setSelectedWorks] = useState<number[]>([]);
     const [creating, setCreating] = useState(false);
 
@@ -168,11 +169,13 @@ function FolderTab({ user, works, refreshing, onRefresh }: any) {
             await api.createFolder({
                 user_id: user.user_id || user.id,
                 name: folderName,
-                post_ids: selectedWorks
+                post_ids: selectedWorks,
+                color: selectedColor
             });
             Alert.alert('성공', '새 폴더가 생성되었습니다.');
             setModalVisible(false);
             setFolderName('');
+            setSelectedColor(folderColors[0]);
             setSelectedWorks([]);
             loadFolders(); // Refresh
         } catch (e) {
@@ -224,12 +227,16 @@ function FolderTab({ user, works, refreshing, onRefresh }: any) {
                 {folders.map(folder => (
                     <TouchableOpacity 
                         key={folder.id}
-                        style={styles.FolderCard}
+                        style={[styles.FolderCard, { backgroundColor: folder.color || colors.white }]}
                         onPress={() => handleFolderClick(folder)}
+                        activeOpacity={0.8}
                     >
-                        <Folder size={40} color={colors.secondary} fill={colors.background} />
-                        <Text style={styles.folderName} numberOfLines={1}>{folder.name}</Text>
-                        <Text style={styles.folderCount}>{folder.item_count || 0}개</Text>
+                        <View style={styles.folderContent}>
+                            {/* If colored, use white icon/text, else default */}
+                            <Folder size={32} color={folder.color ? 'white' : colors.secondary} fill={folder.color ? 'rgba(255,255,255,0.2)' : colors.background} />
+                            <Text style={[styles.folderName, folder.color && { color: 'white' }]} numberOfLines={1}>{folder.name}</Text>
+                            <Text style={[styles.folderCount, folder.color && { color: 'rgba(255,255,255,0.8)' }]}>{folder.item_count || 0}개</Text>
+                        </View>
                     </TouchableOpacity>
                 ))}
 
@@ -251,8 +258,7 @@ function FolderTab({ user, works, refreshing, onRefresh }: any) {
             <View style={{ flex: 1 }}>
                 <View style={styles.detailHeader}>
                     <TouchableOpacity onPress={() => setSelectedFolder(null)} style={styles.backButton}>
-                        <ArrowLeft size={20} color={colors.secondary} />
-                        <Text style={styles.backText}>폴더로 돌아가기</Text>
+                        <ArrowLeft size={24} color={colors.primary} />
                     </TouchableOpacity>
                     <Text style={styles.detailTitle}>{selectedFolder.name}</Text>
                 </View>
@@ -260,17 +266,15 @@ function FolderTab({ user, works, refreshing, onRefresh }: any) {
                 <FlatList
                     data={displayWorks}
                     keyExtractor={(item) => item.id.toString()}
-                    numColumns={2}
                     renderItem={({ item }) => (
-                         <View style={{ flex: 1, padding: 6 }}>
-                            <WorkCardGrid 
+                         <View style={{ paddingHorizontal: 16 }}>
+                            <WorkCardList 
                                 work={item} 
                                 onPress={() => router.push({ pathname: '/work/[id]', params: { id: item.id } })}
-                                layout="medium" 
                             />
                         </View>
                     )}
-                    contentContainerStyle={{ padding: 10, paddingBottom: 100 }}
+                    contentContainerStyle={{ paddingVertical: 10, paddingBottom: 100 }}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <Text style={styles.emptyText}>작품이 없습니다.</Text>
@@ -309,8 +313,23 @@ function FolderTab({ user, works, refreshing, onRefresh }: any) {
                                 placeholder="폴더 이름을 입력하세요"
                             />
 
+                            <Text style={styles.inputLabel}>폴더 색상</Text>
+                            <View style={styles.colorRow}>
+                                {folderColors.map(c => (
+                                    <TouchableOpacity 
+                                        key={c}
+                                        style={[styles.colorCircle, { backgroundColor: c }, selectedColor === c && styles.colorSelected]}
+                                        onPress={() => setSelectedColor(c)}
+                                    />
+                                ))}
+                            </View>
+
                             <Text style={styles.inputLabel}>작품 선택 ({selectedWorks.length})</Text>
-                            <ScrollView style={styles.workSelectionList} horizontal>
+                            <ScrollView 
+                                style={styles.workSelectionScroll} 
+                                contentContainerStyle={styles.workSelectionGrid}
+                                persistentScrollbar={true}
+                            >
                                 {works.map((work: any) => (
                                     <TouchableOpacity 
                                         key={work.id} 
@@ -336,11 +355,17 @@ function FolderTab({ user, works, refreshing, onRefresh }: any) {
 
                         <View style={styles.modalFooter}>
                             <TouchableOpacity 
+                                onPress={() => setModalVisible(false)}
+                                style={styles.cancelBtn}
+                            >
+                                <Text style={styles.cancelBtnText}>취소</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
                                 style={[styles.createBtn, creating && styles.disabledBtn]} 
                                 onPress={handleCreateFolder}
                                 disabled={creating}
                             >
-                                {creating ? <ActivityIndicator color="white" /> : <Text style={styles.createBtnText}>만들기</Text>}
+                                {creating ? <ActivityIndicator color="white" size="small" /> : <Text style={styles.createBtnText}>만들기</Text>}
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -573,6 +598,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         paddingHorizontal: 16,
+        paddingTop: 16,
         gap: 16,
     },
     FolderCard: {
@@ -584,7 +610,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: colors.white,
         ...shadowStyles.apple,
-        marginBottom: 8,
+        marginBottom: 16, // Increased spacing
     },
     folderContent: {
         alignItems: 'center',
@@ -622,6 +648,21 @@ const styles = StyleSheet.create({
         borderRadius: 24,
         padding: 16,
         ...shadowStyles.sm,
+    },
+    colorRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 16,
+        flexWrap: 'wrap',
+    },
+    colorCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+    },
+    colorSelected: {
+        borderWidth: 3,
+        borderColor: colors.gray400,
     },
     dayContainer: {
         width: '100%',
@@ -750,27 +791,50 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     inputLabel: {
-        fontSize: 14,
-        color: colors.gray500,
-        marginBottom: 6,
+        fontSize: 11,
+        fontFamily: typography.sansBold,
+        color: '#9CA3AF',
+        letterSpacing: 1,
+        marginBottom: 8,
+        marginTop: 16,
     },
     input: {
-        backgroundColor: colors.gray100,
-        padding: 12,
-        borderRadius: 12,
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        fontSize: 14,
+        color: '#1a1a1a',
+        fontFamily: typography.sans,
     },
     modalFooter: {
-        alignItems: 'flex-end',
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        gap: 12,
+        marginTop: 20,
+    },
+    cancelBtn: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+    },
+    cancelBtnText: {
+        color: colors.gray500,
+        fontFamily: typography.sansMedium,
+        fontSize: 14,
     },
     createBtn: {
-        backgroundColor: colors.primary,
+        backgroundColor: '#1a1a1a',
         paddingVertical: 12,
         paddingHorizontal: 24,
-        borderRadius: 12,
+        borderRadius: 20,
     },
     createBtnText: {
         color: colors.white,
         fontWeight: 'bold',
+        fontSize: 14,
     },
     disabledBtn: {
         opacity: 0.5,
@@ -803,14 +867,19 @@ const styles = StyleSheet.create({
     emptyText: {
         color: colors.gray400,
     },
-    workSelectionList: {
-        maxHeight: 120,
+    workSelectionScroll: {
+        maxHeight: 250, // Approx 2.5 rows visible, scroll for more
         marginTop: 8,
     },
+    workSelectionGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        paddingBottom: 20,
+    },
     workSelectCard: {
-        width: 80,
-        height: 80,
-        marginRight: 8,
+        width: '31%',
+        aspectRatio: 1,
         borderRadius: 8,
         overflow: 'hidden',
     },

@@ -223,7 +223,7 @@ export default {
         return data;
     },
 
-    createFolder: async (payload: { user_id: string | number, name: string, post_ids: (string | number)[] }) => {
+    createFolder: async (payload: { user_id: string | number, name: string, post_ids: (string | number)[], color?: string }) => {
         const { data } = await api.post('/folders', payload);
         return data;
     },
