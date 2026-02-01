@@ -53,7 +53,15 @@ It allows users to archive art exhibitions, analyze artwork styles using AI, and
 
 ### 📱 Mobile Era (React Native)
 
-#### **v2.2 (Current Stable) - 2026.01.29 ~ 30**
+#### **v.2.4 (Current Stable) - 2026.02.01**
+
+- **Ticket UI Redesign**:
+  - Implemented **"Original Ticket"** vertical card style with **Soft Square Scalloped Edges**.
+  - Added **Swipe Gestures** (Left/Right for nav, Down for details).
+- **Data Integrity**: Fixed legacy data migration to correctly separate tickets by `work_date`.
+- **Visuals**: Dynamic contrast text on tickets.
+
+#### **v2.2 - 2026.01.29 ~ 30**
 
 - **Home Widgets**: Replaced static "Saved List" with a sleek **Banner Carousel Widget**.
 - **Pagination**: Added "Load More" functionality to the Home work list for better performance.
