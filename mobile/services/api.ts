@@ -16,13 +16,15 @@ const API_BASE_URL = (() => {
         // Simulator / Emulator
         return Platform.select({
             android: 'http://10.0.2.2:3001',
-            default: 'http://localhost:3001',
+            default: 'http://127.0.0.1:3001',
         });
     } else {
         // Physical Device
         return `http://${lanIp}:3001`;
     }
 })();
+
+console.log('API Base URL:', API_BASE_URL);
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -255,5 +257,30 @@ export default {
         return data;
     },
 
-    // Duplicates removed
+    // Stats
+    getLocationStats: async (userId: string | number) => {
+        const { data } = await api.get(`/users/${userId}/works/locations`);
+        return data;
+    },
+
+    getAnalysisStats: async (userId: string | number) => {
+        const { data } = await api.get(`/users/${userId}/stats/analysis`);
+        return data;
+    },
+
+    // Exhibitions
+    getUserExhibitions: async (userId: string | number) => {
+        const { data } = await api.get(`/users/${userId}/exhibitions`);
+        return data;
+    },
+
+    getExhibitionDetail: async (id: string | number) => {
+        const { data } = await api.get(`/exhibitions/${id}`);
+        return data;
+    },
+
+    updateExhibition: async (id: string | number, payload: any) => {
+        const { data } = await api.put(`/exhibitions/${id}`, payload);
+        return data;
+    }
 };

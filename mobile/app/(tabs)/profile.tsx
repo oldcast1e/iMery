@@ -1,30 +1,46 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, FlatList, StyleSheet, Modal, TextInput } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, StyleSheet, Modal, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import { Settings, LogOut, Bookmark, Heart, MessageCircle, Camera, X } from 'lucide-react-native';
+import { Settings, LogOut, Camera, X, ChevronRight, Map, Activity, BarChart2, Ticket } from 'lucide-react-native';
 import api from '@services/api';
 import { colors, shadowStyles, typography } from '../../constants/designSystem';
-import WorkCardGrid from '../../components/work/WorkCardGrid';
 
 export default function ProfileScreen() {
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
     const [profile, setProfile] = useState<any>(null);
     const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
-    const [activeTab, setActiveTab] = useState<'bookmarks' | 'likes' | 'comments'>('bookmarks');
+    
+    // Level Logic
+    const getLevelInfo = (count: number) => {
+        const level = Math.floor(count / 10) + 1;
+        const remainder = count % 10;
+        
+        let title = '예술의 방랑자';
+        if (count >= 90) title = '기억의 마스터';
+        else if (count >= 80) title = '위대한 기록자';
+        else if (count >= 70) title = '심미의 설계자';
+        else if (count >= 60) title = '예술의 동행자';
+        else if (count >= 50) title = '안목의 소유자';
+        else if (count >= 40) title = '영감의 해석자';
+        else if (count >= 30) title = '안목의 개척자';
+        else if (count >= 20) title = '미학의 추적자';
+        else if (count >= 10) title = '예술의 입문자';
+
+        return { level, title, remainder };
+    };
+
+    const { level, title, remainder } = getLevelInfo(stats.posts);
+    const progressPercent = (remainder / 10) * 100;
     
     // Edit Profile
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [newBio, setNewBio] = useState('');
     const [uploading, setUploading] = useState(false);
-
-    // Data List
-    const [listData, setListData] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         loadUser();
@@ -40,9 +56,8 @@ export default function ProfileScreen() {
         if (user) {
             loadProfile();
             loadStats();
-            loadTabData();
         }
-    }, [user, activeTab]);
+    }, [user]);
 
     const loadUser = async () => {
         try {
@@ -71,556 +86,412 @@ export default function ProfileScreen() {
         }
     };
 
-    const loadTabData = async () => {
-        setLoading(true);
-        try {
-            const userId = user.user_id || user.id;
-            let data = [];
-            
-            if (activeTab === 'bookmarks') {
-                 data = await api.getBookmarks(userId);
-            } else if (activeTab === 'likes') {
-                 try {
-                    const likedIds = await api.getMyLikes(userId);
-                    const allPosts = await api.getPosts();
-                    data = allPosts.filter((w: any) => likedIds.includes(w.id));
-                 } catch(e) {
-                     data = []; 
-                 }
-            } else if (activeTab === 'comments') {
-                 data = await api.getMyComments(userId);
-            }
-            setListData(data);
-        } catch (e) {
-            console.error(e);
-            setListData([]);
-        } finally {
-            setLoading(false);
-        }
+    const handleLogout = async () => {
+        await AsyncStorage.removeItem('imery-user');
+        router.replace('/');
     };
 
-    const handlePickImage = async () => {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-             Alert.alert('Permission needed', 'Gallery permission is required to change profile picture.');
-             return;
-        }
-
-        let result = await ImagePicker.launchImageLibraryAsync({
+    const pickImage = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.5,
         });
 
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-            handleUpdateProfileImage(result.assets[0]);
+        if (!result.canceled) {
+            handleUpdateProfile(result.assets[0].uri);
         }
     };
 
-    const handleUpdateProfileImage = async (asset: any) => {
+    const handleUpdateProfile = async (imageUri?: string) => {
         setUploading(true);
         try {
             const formData = new FormData();
             formData.append('user_id', user.user_id || user.id);
-            formData.append('bio', profile?.bio || user?.bio || '');
-            
-            const fileCheck = {
-                uri: asset.uri,
-                type: 'image/jpeg',
-                name: 'profile.jpg',
-            } as any;
-            
-            formData.append('image', fileCheck);
+            if (imageUri) {
+                const filename = imageUri.split('/').pop();
+                const match = /\.(\w+)$/.exec(filename || '');
+                const type = match ? `image/${match[1]}` : `image`;
+                // @ts-ignore
+                formData.append('profileImage', { uri: imageUri, name: filename, type });
+            }
+            if (newBio) formData.append('bio', newBio);
 
-            const res = await api.updateProfile(user.user_id || user.id, formData);
-            setProfile(res.user);
-            Alert.alert('Success', '프로필 사진이 변경되었습니다.');
-        } catch (e) {
-            Alert.alert('Error', '프로필 사진 변경 실패');
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const handleUpdateBio = async () => {
-        setUploading(true);
-        try {
-            const formData = new FormData();
-            formData.append('user_id', user.user_id || user.id);
-            formData.append('bio', newBio);
-            
-            const res = await api.updateProfile(user.user_id || user.id, formData);
-            setProfile(res.user);
+            await api.updateProfile(user.user_id || user.id, formData);
+            loadProfile();
             setEditModalVisible(false);
-            Alert.alert('Success', '자신을 소개하는 글이 변경되었습니다.');
+            Alert.alert('프로필이 업데이트되었습니다.');
         } catch (e) {
-            Alert.alert('Error', '프로필 수정 실패');
+            console.error(e);
+            Alert.alert('업데이트 실패');
         } finally {
             setUploading(false);
         }
     };
 
-    const openEditBio = () => {
-        setNewBio(profile?.bio || user?.bio || '');
-        setEditModalVisible(true);
-    };
-
-    const handleLogout = async () => {
-        Alert.alert(
-            "Log Out",
-            "Are you sure you want to log out?",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Log Out",
-                    style: "destructive",
-                    onPress: async () => {
-                        await AsyncStorage.removeItem('imery-user');
-                        router.replace('/(auth)/login');
-                    }
-                }
-            ]
-        );
-    };
-
-    const getImageUrl = (url: string | null) => {
-        if (!url) return 'https://ui-avatars.com/api/?background=000&color=fff';
-        return url.startsWith('http') ? url : `http://localhost:3001${url}`; // Adjust for Android/iOS if needed via api config ideally
-    };
-
-    const renderHeader = () => (
-        <View style={styles.headerContainer}>
-            {/* Settings */}
-            <TouchableOpacity 
-                style={styles.settingsButton}
-                onPress={() => router.push('/settings')}
-            >
-                <Settings size={22} color={colors.gray400} />
-            </TouchableOpacity>
-
-            {/* Profile Image */}
-            <View style={styles.profileImageWrapper}>
-                <Image 
-                    source={{ uri: user ? getImageUrl(profile?.profile_image_url || user.profile_image_url || null) : undefined }}
-                    style={styles.profileImage}
-                />
-                <TouchableOpacity style={styles.editButton} onPress={handlePickImage} disabled={uploading}>
-                    {uploading ? <ActivityIndicator size="small" color="#FFF" /> : <Camera size={14} color="#FFF" />}
-                </TouchableOpacity>
-            </View>
-
-            {/* Info */}
-            <TouchableOpacity onPress={openEditBio} style={{ alignItems: 'center' }}>
-                <Text style={styles.nickname}>{profile?.nickname || user?.nickname || 'Guest'}</Text>
-                <Text style={styles.bio}>{profile?.bio || user?.bio || "자기소개를 입력해주세요."}</Text>
-            </TouchableOpacity>
-
-            {/* Stats */}
-            <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                    <Text style={styles.statValue}>{stats.posts}</Text>
-                    <Text style={styles.statLabel}>WORKS</Text>
-                </View>
-                <View style={styles.statSeparator} />
-                <View style={styles.statItem}>
-                    <Text style={styles.statValue}>{stats.followers}</Text>
-                    <Text style={styles.statLabel}>FOLLOWERS</Text>
-                </View>
-                <View style={styles.statSeparator} />
-                <View style={styles.statItem}>
-                    <Text style={styles.statValue}>{stats.following}</Text>
-                    <Text style={styles.statLabel}>FOLLOWING</Text>
-                </View>
-            </View>
-
-            {/* Tabs */}
-            <View style={styles.tabRow}>
-                <TouchableOpacity 
-                    style={[styles.tabButton, activeTab === 'bookmarks' && styles.activeTabButton]}
-                    onPress={() => setActiveTab('bookmarks')}
-                >
-                    <Bookmark size={20} color={activeTab === 'bookmarks' ? colors.primary : colors.gray400} />
-                    {activeTab === 'bookmarks' && <View style={styles.activeIndicator} />}
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                    style={[styles.tabButton, activeTab === 'likes' && styles.activeTabButton]}
-                    onPress={() => setActiveTab('likes')}
-                >
-                    <Heart size={20} color={activeTab === 'likes' ? colors.primary : colors.gray400} />
-                    {activeTab === 'likes' && <View style={styles.activeIndicator} />}
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                    style={[styles.tabButton, activeTab === 'comments' && styles.activeTabButton]}
-                    onPress={() => setActiveTab('comments')}
-                >
-                    <MessageCircle size={20} color={activeTab === 'comments' ? colors.primary : colors.gray400} />
-                    {activeTab === 'comments' && <View style={styles.activeIndicator} />}
-                </TouchableOpacity>
-            </View>
-        </View>
-    );
-
-    const renderItem = ({ item }: { item: any }) => {
-        if (activeTab === 'comments') {
-            return (
-                <View style={styles.commentItem}>
-                    <View style={styles.commentContent}>
-                        <Text style={styles.commentText}>"{item.content}"</Text>
-                        <Text style={styles.dateText}>{new Date(item.created_at).toLocaleDateString()}</Text>
-                    </View>
-                </View>
-            );
-        }
-
-        return (
-             <TouchableOpacity 
-                style={styles.listItem}
-                onPress={() => router.push({ pathname: '/work/[id]', params: { id: item.id || item.post_id } })}
-             >
-                <Image 
-                    source={{ uri: getImageUrl(item.image_url || item.thumbnail || item.post_image || item.image) }}
-                    style={styles.listImage}
-                />
-                <View style={styles.listContent}>
-                    <Text style={styles.itemTitle}>{item.title || item.post_title}</Text>
-                    <Text style={styles.itemArtist}>{item.artist || item.artist_name || 'Unknown Artist'}</Text>
-                    
-                    {/* Tags */}
-                    {item.tags && Array.isArray(item.tags) && (
-                        <View style={styles.tagRow}>
-                            {item.tags.slice(0, 3).map((tag: any, i: number) => (
-                                <View key={i} style={styles.tagBadge}>
-                                    <Text style={styles.tagText}>{typeof tag === 'object' ? tag.label : tag}</Text>
-                                </View>
-                            ))}
-                        </View>
-                    )}
-
-                    <View style={styles.itemFooter}>
-                        {activeTab === 'bookmarks' && <Text style={styles.dateText}>Bookmarked: {new Date(item.bookmarked_at || Date.now()).toLocaleDateString()}</Text>}
-                        {activeTab === 'likes' && <Text style={styles.dateText}>Liked: {new Date(item.created_at).toLocaleDateString()}</Text>}
-                    </View>
-                </View>
-             </TouchableOpacity>
-        );
+    const navigateToSection = (path: string) => {
+        router.push({
+            pathname: path as any,
+            params: { userId: user.user_id || user.id }
+        });
     };
 
     if (!user) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator color={colors.primary} />
-            </View>
+            <SafeAreaView style={styles.container}>
+                <ActivityIndicator size="large" color={colors.primary} />
+            </SafeAreaView>
         );
     }
 
     return (
-        <View style={styles.container}>
-             <FlatList
-                data={listData}
-                keyExtractor={(item, index) => String(item.id || index)}
-                renderItem={renderItem}
-                ListHeaderComponent={renderHeader}
-                contentContainerStyle={{ paddingBottom: 100 }}
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>
-                            {activeTab === 'bookmarks' ? '북마크한 작품이 없습니다.' : 
-                             activeTab === 'likes' ? '좋아요한 작품이 없습니다.' : '작성한 댓글이 없습니다.'}
-                        </Text>
-                    </View>
-                }
-                ListFooterComponent={<View style={{ height: 100 }} />}
-             />
+        <SafeAreaView style={styles.container}>
+            <View style={styles.headerBar}>
+                <Text style={styles.headerTitle}>프로필</Text>
+                <View style={styles.headerRight}>
+                    <TouchableOpacity onPress={handleLogout} style={styles.iconButton}>
+                        <LogOut size={24} color="#333" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.iconButton}>
+                        <Settings size={24} color="#333" />
+                    </TouchableOpacity>
+                </View>
+            </View>
 
-            {/* Edit Bio Modal */}
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                {/* 1. Profile Section */}
+                <View style={styles.profileSection}>
+                    <View style={styles.profileImageContainer}>
+                        <Image
+                            source={{ uri: profile?.profile_image_url || 'https://via.placeholder.com/100' }}
+                            style={styles.profileImage}
+                        />
+                        <TouchableOpacity style={styles.editIcon} onPress={() => {
+                            setNewBio(profile?.bio || '');
+                            setEditModalVisible(true);
+                        }}>
+                            <Camera size={16} color="white" />
+                        </TouchableOpacity>
+                    </View>
+                    
+                    <Text style={styles.nickname}>{user.nickname}</Text>
+                    <Text style={styles.bio}>{profile?.bio || '한줄 소개를 입력해주세요.'}</Text>
+
+                    <View style={styles.statsRow}>
+                        <View style={styles.statItem}>
+                            <Text style={styles.statLabel}>WORKS</Text>
+                            <Text style={styles.statValue}>{stats.posts}</Text>
+                        </View>
+                        <View style={styles.statItem}>
+                            <Text style={styles.statLabel}>FOLLOWERS</Text>
+                            <Text style={styles.statValue}>{stats.followers}</Text>
+                        </View>
+                        <View style={styles.statItem}>
+                            <Text style={styles.statLabel}>FOLLOWINGS</Text>
+                            <Text style={styles.statValue}>{stats.following}</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* 2. Navigation Menu */}
+                <View style={styles.menuSection}>
+                    {/* 1. I-Memory (Redesigned) */}
+                    <TouchableOpacity 
+                        style={[styles.menuItem, { flexDirection: 'column', alignItems: 'stretch', padding: 20 }]} 
+                        onPress={() => navigateToSection('/profile/memory' as any)}
+                    >
+                        {/* Header */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1A1A1A' }}>I-Memory</Text>
+                            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#FF6B6B', marginLeft: 4 }}>{stats.posts}</Text>
+                        </View>
+
+                        <View style={{ flexDirection: 'row' }}>
+                            {/* Left Image Placeholder */}
+                            <View style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#F3F4F6', marginRight: 16, alignItems: 'center', justifyContent: 'center' }}>
+                                 <Ticket size={32} color={colors.gray400} />
+                            </View>
+
+                            {/* Right Content */}
+                            <View style={{ flex: 1 }}>
+                                <View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                                         <Activity size={16} color="#FF6B6B" style={{ marginRight: 6 }} /> 
+                                         <Text style={{ fontSize: 14, fontWeight: '600', color: '#1A1A1A' }}>Lv.{level} {title}</Text>
+                                    </View>
+                                    
+                                    {/* Progress Bar */}
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <View style={{ flex: 1, height: 8, backgroundColor: '#F3F4F6', borderRadius: 4, overflow: 'hidden', marginRight: 8 }}>
+                                            <View style={{ width: `${progressPercent}%`, height: '100%', backgroundColor: '#FF6B6B' }} />
+                                        </View>
+                                        <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{remainder}/10</Text>
+                                    </View>
+                                </View>
+
+                                {/* Action Button */}
+                                <View style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingVertical: 10, alignItems: 'center', marginTop: 12 }}>
+                                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                         <Text style={{ fontSize: 13, fontWeight: '500', color: '#4B5563' }}>🎫 전시회 티켓을 확인해보세요.</Text>
+                                     </View>
+                                </View>
+                            </View>
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={[styles.menuItem, { paddingVertical: 20 }]}
+                        onPress={() => navigateToSection('/profile/activity' as any)}
+                    >
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.iconBox, { backgroundColor: '#FFF0F0' }]}>
+                                <Activity size={20} color="#FF6B6B" />
+                            </View>
+                            <View>
+                                <Text style={styles.menuText}>I-Activity</Text>
+                                <Text style={{ fontSize: 12, color: '#9CA3AF ' }}>나의 메모리 활동 모아보기!</Text>
+                            </View>
+                        </View>
+                        <ChevronRight size={20} color={colors.gray400} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={styles.menuItem}
+                        onPress={() => navigateToSection('/profile/record')}
+                    >
+                        <View style={styles.menuLeft}>
+                            <View style={[styles.iconBox, { backgroundColor: '#F0F9FF' }]}>
+                                <BarChart2 size={20} color="#0EA5E9" />
+                            </View>
+                            <View>
+                                <Text style={styles.menuText}>I-Record</Text>
+                                <Text style={{ fontSize: 12, color: '#9CA3AF ' }}>다녀온 전시회 통계를 확인해보세요.</Text>
+                            </View>
+                        </View>
+                        <ChevronRight size={20} color={colors.gray400} />
+                    </TouchableOpacity>
+                </View>
+
+                <View style={{ height: 40 }} />
+            </ScrollView>
+
+            {/* Edit Profile Modal */}
             <Modal
+                animationType="slide"
                 transparent={true}
                 visible={editModalVisible}
-                animationType="fade"
                 onRequestClose={() => setEditModalVisible(false)}
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContainer}>
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>자기소개 수정</Text>
+                            <Text style={styles.modalTitle}>프로필 수정</Text>
                             <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                                <X size={24} color={colors.gray500} />
+                                <X size={24} color="#333" />
                             </TouchableOpacity>
                         </View>
-                        <TextInput 
-                            style={styles.bioInput}
+                        
+                        <TouchableOpacity style={styles.imagePickerBtn} onPress={pickImage}>
+                            <Text style={styles.imagePickerText}>프로필 사진 변경</Text>
+                        </TouchableOpacity>
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="한줄 소개"
                             value={newBio}
                             onChangeText={setNewBio}
-                            placeholder="자신을 자유롭게 소개해 보세요."
                             multiline
-                            maxLength={100}
                         />
-                        <TouchableOpacity style={styles.saveBtn} onPress={handleUpdateBio} disabled={uploading}>
+
+                        <TouchableOpacity 
+                            style={styles.saveBtn}
+                            onPress={() => handleUpdateProfile()}
+                            disabled={uploading}
+                        >
                             <Text style={styles.saveBtnText}>{uploading ? '저장 중...' : '저장'}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
-        </View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.white,
+        backgroundColor: colors.background,
     },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
+    headerBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-    },
-    headerContainer: {
-        backgroundColor: '#fffbeb', // cream-50ish
-        paddingTop: 20,
+        paddingHorizontal: 20,
         paddingBottom: 0,
-        borderBottomLeftRadius: 32,
-        borderBottomRightRadius: 32,
+        backgroundColor: colors.background,
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#1a1a1a',
+    },
+    headerRight: {
+        flexDirection: 'row',
+        gap: 15,
+    },
+    iconButton: {
+        padding: 4,
+    },
+    scrollContent: {
+        paddingBottom: 20,
+    },
+    profileSection: {
         alignItems: 'center',
-        ...shadowStyles.apple,
-        marginBottom: 8,
+        paddingVertical: 10,
+        backgroundColor: colors.background,
     },
-    settingsButton: {
-        position: 'absolute',
-        top: 10,
-        right: 20,
-        padding: 8,
-    },
-    profileImageWrapper: {
-        width: 100,
-        height: 100,
-        marginBottom: 16,
+    profileImageContainer: {
         position: 'relative',
+        marginBottom: 12,
     },
     profileImage: {
-        width: '100%',
-        height: '100%',
+        width: 100,
+        height: 100,
         borderRadius: 50,
-        borderWidth: 2,
-        borderColor: colors.white,
+        borderWidth: 3,
+        borderColor: 'white',
+        ...shadowStyles.apple,
     },
-    editButton: {
+    editIcon: {
         position: 'absolute',
         bottom: 0,
         right: 0,
         backgroundColor: colors.primary,
-        padding: 6,
+        padding: 8,
         borderRadius: 20,
-        ...shadowStyles.apple,
+        borderWidth: 2,
+        borderColor: 'white',
     },
     nickname: {
-        fontSize: 24,
-        fontFamily: typography.serif,
-        color: colors.primary,
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#1a1a1a',
         marginBottom: 4,
     },
     bio: {
         fontSize: 14,
-        fontFamily: typography.sans,
-        color: colors.gray500,
-        marginBottom: 24,
-        paddingHorizontal: 32,
+        color: colors.gray600,
+        marginBottom: 16,
         textAlign: 'center',
+        paddingHorizontal: 40,
     },
     statsRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 24,
         width: '100%',
-        justifyContent: 'center',
+        paddingHorizontal: 40,
+        marginBottom: 10,
     },
     statItem: {
         alignItems: 'center',
-        paddingHorizontal: 24,
-    },
-    statValue: {
-        fontSize: 20,
-        fontFamily: typography.sansBold,
-        color: colors.primary,
+        flex: 1,
     },
     statLabel: {
-        fontSize: 10,
-        fontFamily: typography.sansBold,
-        color: colors.gray400,
-        marginTop: 4,
+        fontSize: 12,
+        color: colors.gray500,
+        marginBottom: 2,
+        textAlign: 'center',
     },
-    statSeparator: {
-        width: 1,
-        height: 24,
-        backgroundColor: colors.gray200,
+    statValue: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#1a1a1a',
+        textAlign: 'center',
     },
-    tabRow: {
+    menuSection: {
+        marginTop: 10,
+        paddingHorizontal: 20,
+    },
+    menuItem: {
         flexDirection: 'row',
-        width: '100%',
-        borderTopWidth: 1,
-        borderTopColor: colors.gray100,
-    },
-    tabButton: {
-        flex: 1,
+        justifyContent: 'space-between',
         alignItems: 'center',
         paddingVertical: 16,
-        position: 'relative',
+        paddingHorizontal: 16,
+        backgroundColor: 'white',
+        marginBottom: 12,
+        borderRadius: 16,
+        ...shadowStyles.apple,
     },
-    activeTabButton: {
-        // bg color if needed
+    menuLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
     },
-    activeIndicator: {
-        position: 'absolute',
-        bottom: 0,
+    iconBox: {
         width: 40,
-        height: 3,
-        backgroundColor: colors.primary,
-        borderRadius: 2,
-    },
-    // List Items
-    listItem: {
-        flexDirection: 'row',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.gray100,
-        gap: 16,
-    },
-    listImage: {
-        width: 80,
-        height: 80,
+        height: 40,
         borderRadius: 12,
-        backgroundColor: colors.gray200,
-    },
-    listContent: {
-        flex: 1,
         justifyContent: 'center',
+        alignItems: 'center',
     },
-    itemTitle: {
+    menuText: {
         fontSize: 16,
-        fontFamily: typography.sansBold,
-        color: colors.primary,
-        marginBottom: 4,
-    },
-    itemArtist: {
-        fontSize: 12,
-        fontFamily: typography.sans,
-        color: colors.gray500,
-        marginBottom: 8,
-    },
-    tagRow: {
-        flexDirection: 'row',
-        gap: 6,
-        marginBottom: 6,
-    },
-    tagBadge: {
-        backgroundColor: colors.gray100,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
-        borderWidth: 1,
-        borderColor: colors.gray200,
-    },
-    tagText: {
-        fontSize: 10,
-        fontFamily: typography.sansBold,
-        color: colors.gray400,
-    },
-    itemFooter: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-    },
-    dateText: {
-        fontSize: 10,
-        fontFamily: typography.sans,
-        color: colors.gray400,
-    },
-    // Comments
-    commentItem: {
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.gray100,
-    },
-    commentContent: {
-        backgroundColor: colors.gray100,
-        padding: 16,
-        borderRadius: 12,
-    },
-    commentText: {
-        fontSize: 14,
-        fontFamily: typography.sansMedium,
-        color: colors.primary,
-        marginBottom: 8,
-        fontStyle: 'italic',
-    },
-    emptyContainer: {
-        padding: 40,
-        alignItems: 'center',
-    },
-    emptyText: {
-        color: colors.gray400,
-        fontFamily: typography.sans,
-    },
-    logoutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 12,
-        borderRadius: 12,
-        backgroundColor: '#fef2f2',
-        gap: 8,
-    },
-    logoutText: {
-        color: '#ef4444',
-        fontFamily: typography.sansBold,
-        fontSize: 14,
-    },
-    // Modal
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
+        fontWeight: '600',
+        color: '#1A1A1A',
     },
     modalContainer: {
-        width: '85%',
-        backgroundColor: colors.white,
-        borderRadius: 24,
-        padding: 24,
-        ...shadowStyles.premium,
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+        minHeight: 300,
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
     },
     modalTitle: {
         fontSize: 18,
-        fontFamily: typography.serif,
-        color: colors.primary,
+        fontWeight: 'bold',
     },
-    bioInput: {
-        backgroundColor: colors.gray100,
-        borderRadius: 12,
-        padding: 16,
-        minHeight: 100,
-        fontSize: 14,
-        fontFamily: typography.sans,
+    imagePickerBtn: {
+        alignItems: 'center',
+        padding: 15,
+        borderWidth: 1,
+        borderColor: colors.gray200,
+        borderRadius: 10,
+        marginBottom: 15,
+    },
+    imagePickerText: {
+        color: colors.primary,
+        fontWeight: '600',
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: colors.gray200,
+        borderRadius: 10,
+        padding: 15,
+        height: 100,
         textAlignVertical: 'top',
-        marginBottom: 24,
+        marginBottom: 20,
     },
     saveBtn: {
         backgroundColor: colors.primary,
-        padding: 14,
-        borderRadius: 12,
+        padding: 15,
+        borderRadius: 10,
         alignItems: 'center',
     },
     saveBtnText: {
-        color: colors.white,
-        fontFamily: typography.sansBold,
-        fontSize: 14,
-    }
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
 });

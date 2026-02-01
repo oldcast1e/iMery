@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Alert, TextInput, StyleSheet, Dimensions, Platform, Animated, Easing } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Share2, Clock, Music, Pause, Play, Sparkles, Send, Tag } from 'lucide-react-native';
+import { ArrowLeft, Share2, Clock, Music, Pause, Play, Sparkles, Send, Tag, MapPin } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import * as Sharing from 'expo-sharing';
@@ -12,6 +12,15 @@ import { getImageUrl } from '../../utils/imageHelper';
 import { colors, shadowStyles, typography } from '../../constants/designSystem';
 
 const { width } = Dimensions.get('window');
+
+// Configure Audio for playback in silent mode
+Audio.setAudioModeAsync({
+    allowsRecordingIOS: false,
+    staysActiveInBackground: true,
+    playsInSilentModeIOS: true,
+    shouldDuckAndroid: true,
+    playThroughEarpieceAndroid: false,
+});
 
 export default function WorkDetailScreen() {
     const { id, focusComment } = useLocalSearchParams();
@@ -569,10 +578,21 @@ export default function WorkDetailScreen() {
                     <View style={styles.infoRow}>
                         <Clock size={14} color={colors.gray500} />
                         <Text style={styles.infoText}>{work.work_date || 'Unknown Date'}</Text>
-                        <View style={styles.dot} />
                         <Text style={[styles.infoText, { color: colors.primary, fontWeight: '600' }]}>
                             {work.artist_name || 'Unknown Artist'}
                         </Text>
+                        
+                        {(work.exhibition_name || work.location_city || work.location_province) && (
+                            <>
+                                <View style={styles.dot} />
+                                <View style={styles.locationBadge}>
+                                    <MapPin size={12} color={colors.iMeryBlue || '#4F46E5'} style={{ marginRight: 2 }} />
+                                    <Text style={[styles.infoText, { color: colors.gray500, fontSize: 13 }]}>
+                                        {work.exhibition_name || work.location_city || work.location_province}
+                                    </Text>
+                                </View>
+                            </>
+                        )}
                     </View>
                     
                     {tags.length > 0 && (
@@ -600,6 +620,8 @@ export default function WorkDetailScreen() {
                         <Text style={styles.reviewText}>{work.description || work.review || '작성된 감상평이 없습니다.'}</Text>
                     </View>
                 </View>
+                
+                {/* Location Container Removed (Moved to Header) */}
                 
                 {/* Comments */}
                 <View 
@@ -796,6 +818,26 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontFamily: typography.sansBold,
         color: colors.gray500,
+    },
+    locationContainer: {
+        marginBottom: 24, // Adjusted spacing
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    locationIcon: {
+        marginRight: 8,
+    },
+    locationText: {
+        fontSize: 14,
+        fontFamily: typography.sans,
+        color: colors.secondary,
+        flex: 1,
+    },
+    locationBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        // Removed background/border as requested
     },
     section: {
         marginBottom: 24,

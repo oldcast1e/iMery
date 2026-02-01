@@ -176,15 +176,37 @@ app.get('/posts/', async (req, res) => {
 
 app.get('/users/:id/likes', async (req, res) => {
     const { id } = req.params;
-    const likes = await db.all('SELECT post_id FROM Likes WHERE user_id = ?', [id]);
-    res.json(likes.map(l => l.post_id));
+    try {
+        const likes = await db.all(`
+            SELECT l.post_id, l.created_at, p.* 
+            FROM Likes l
+            JOIN Posts p ON l.post_id = p.id
+            WHERE l.user_id = ?
+            ORDER BY l.created_at DESC
+        `, [id]);
+        res.json(likes);
+    } catch (e) {
+        res.status(500).json({ detail: 'Error fetching likes' });
+    }
+});
+
+// Get User Profile (Missing Endpoint Fix)
+app.get('/users/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const user = await db.get('SELECT id, nickname, profile_image_url, bio, created_at FROM Users WHERE id = ?', [id]);
+        if (!user) return res.status(404).json({ detail: 'User not found' });
+        res.json(user);
+    } catch (e) {
+        res.status(500).json({ detail: 'User fetch failed' });
+    }
 });
 
 app.post('/posts/', upload.single('image'), async (req, res) => {
     // Supports both Multipart (with file) and JSON (base64 fallback or text only)
     // If file exists, use file path. If not, check body.image_url
-    const { user_id, title, artist_name, description, rating, ai_summary, music_url, work_date, genre, tags, style, visibility } = req.body;
-    const finalGenre = genre || '그림';
+    const { user_id, title, artist_name, description, rating, ai_summary, music_url, work_date, genre, tags, style, visibility, exhibition_name } = req.body;
+    const finalGenre = genre || '그림'; // Legacy fallback if genre is still used internally
     const finalVisibility = visibility || 'public'; // 'public', 'friends', 'private'
     let image_url = req.body.image_url;
 
@@ -206,8 +228,48 @@ app.post('/posts/', upload.single('image'), async (req, res) => {
             console.warn('[Multer] No file detected in request. Using image_url from body if provided.');
         }
 
+        // --- EXHIBITION LOGIC ---
+        let exhibition_id = null;
+        const visitDate = work_date || new Date().toISOString().split('T')[0].replace(/-/g, '.');
+        
+        if (exhibition_name) {
+            // Check if exhibition exists for this user + name + date
+            const existingExhibition = await db.get(
+                'SELECT id FROM Exhibitions WHERE user_id = ? AND name = ? AND visit_date = ?',
+                [user_id, exhibition_name, visitDate]
+            );
+
+            if (existingExhibition) {
+                exhibition_id = existingExhibition.id;
+            } else {
+                // Create New Exhibition Ticket
+                // Note: User can edit review/bg_color later. Defaults provided.
+                const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+                // Ensure not too close to white
+                // Simple fix: if it happens to be white-ish, overwrite it
+                let safeColor = randomColor;
+                if (safeColor.toLowerCase() === '#ffffff') safeColor = '#EAD5B7';
+
+                const exResult = await db.run(
+                    'INSERT INTO Exhibitions (user_id, name, visit_date, location, review, bg_color, created_at, director, cast_members) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [
+                        user_id, 
+                        exhibition_name, 
+                        visitDate, 
+                        req.body.location_address || '', 
+                        '', // Default empty review
+                        safeColor,
+                        new Date().toISOString(),
+                        '', // Default director
+                        ''  // Default cast
+                    ]
+                );
+                exhibition_id = exResult.lastID;
+            }
+        }
+
         const result = await db.run(
-            `INSERT INTO Posts (user_id, title, artist_name, image_url, description, rating, ai_summary, music_url, work_date, genre, tags, style, visibility) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO Posts (user_id, title, artist_name, image_url, description, rating, ai_summary, music_url, work_date, genre, tags, style, visibility, location_country, location_province, location_city, location_district, exhibition_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 user_id, 
                 title, 
@@ -215,31 +277,100 @@ app.post('/posts/', upload.single('image'), async (req, res) => {
                 image_url, 
                 description || '', 
                 rating, 
-                ai_summary || null, // Fix: Ensure undefined becomes null
-                music_url || null,  // Fix: Ensure undefined becomes null
-                work_date || new Date().toISOString().split('T')[0].replace(/-/g, '.'), 
+                ai_summary || null, 
+                music_url || null,  
+                visitDate, 
                 finalGenre, 
                 JSON.stringify(finalTags || []), 
                 style || '',
-                finalVisibility
+                finalVisibility,
+                req.body.location_country || null,
+                req.body.location_province || null,
+                req.body.location_city || null,
+                req.body.location_district || null,
+                exhibition_id
             ]
         );
+        
+        // If this is the first post in the exhibition, set it as representative
+        if (exhibition_id) {
+             const ex = await db.get('SELECT representative_post_id FROM Exhibitions WHERE id = ?', [exhibition_id]);
+             if (!ex.representative_post_id) {
+                 await db.run('UPDATE Exhibitions SET representative_post_id = ? WHERE id = ?', [result.lastID, exhibition_id]);
+             }
+        }
+
         res.json({ message: '업로드 성공', id: result.lastID });
-
-        // Create Notification (Self-notification? Or notify followers? For now, simple logic)
-        await db.run(
-            `INSERT INTO Notifications (user_id, type, message) VALUES (?, ?, ?)`,
-            [user_id, 'work', `'${title}' 작품이 저장되었습니다.`]
-        );
-
+// ... (Notifications) ...
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ 
-            detail: '업로드 실패', 
-            error: error.message, 
-            sql: error.sql, // Optional: if using mysql driver that exposes this
-            sqlMessage: error.sqlMessage 
-        });
+// ...
+    }
+});
+
+// --- Exhibition Endpoints ---
+
+// Get User's Exhibitions (Tickets)
+app.get('/users/:id/exhibitions', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const exhibitions = await db.all(`
+            SELECT E.*, 
+            (SELECT COUNT(*) FROM Posts WHERE exhibition_id = E.id) as post_count,
+            (SELECT AVG(rating) FROM Posts WHERE exhibition_id = E.id) as avg_rating,
+            p.image_url as representative_image,
+            p.title as representative_title,
+            p.artist_name as representative_artist_name,
+            u.nickname as user_nickname
+            FROM Exhibitions E
+            LEFT JOIN Posts p ON E.representative_post_id = p.id
+            JOIN Users u ON E.user_id = u.id
+            WHERE E.user_id = ?
+            ORDER BY E.visit_date DESC
+        `, [id]);
+        res.json(exhibitions);
+    } catch (e) {
+        console.error('[GetExhibitions Error]', e);
+        res.status(500).json({ detail: '전시회 목록 조회 실패' });
+    }
+});
+
+// Get Posts in an Exhibition
+app.get('/exhibitions/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const exhibition = await db.get('SELECT * FROM Exhibitions WHERE id = ?', [id]);
+        if (!exhibition) return res.status(404).json({ detail: 'Exhibition not found' });
+
+        const posts = await db.all('SELECT * FROM Posts WHERE exhibition_id = ? ORDER BY id DESC', [id]);
+        res.json({ exhibition, posts });
+    } catch (e) {
+        res.status(500).json({ detail: '전시회 조회 실패' });
+    }
+});
+
+// Update Exhibition Metadata (Review, BgColor, Representative, Director, Cast)
+app.put('/exhibitions/:id', async (req, res) => {
+    const { id } = req.params;
+    const { review, bg_color, representative_post_id, director, cast_members, visit_time } = req.body;
+    try {
+        const current = await db.get('SELECT * FROM Exhibitions WHERE id = ?', [id]);
+        if (!current) return res.status(404).json({ detail: 'Not found' });
+
+        await db.run(
+            'UPDATE Exhibitions SET review = ?, bg_color = ?, representative_post_id = ?, director = ?, cast_members = ?, visit_time = ? WHERE id = ?',
+            [
+                review !== undefined ? review : current.review,
+                bg_color !== undefined ? bg_color : current.bg_color,
+                representative_post_id !== undefined ? representative_post_id : current.representative_post_id,
+                director !== undefined ? director : current.director,
+                cast_members !== undefined ? cast_members : current.cast_members,
+                visit_time !== undefined ? visit_time : current.visit_time,
+                id
+            ]
+        );
+        res.json({ message: '전시회 정보 수정 성공' });
+    } catch (e) {
+        res.status(500).json({ detail: '업데이트 실패' });
     }
 });
 
@@ -335,17 +466,23 @@ app.post('/posts/:id/comments', authenticateToken, async (req, res) => {
 });
 
 // GET User Profile
-app.get('/users/:id', async (req, res) => {
+app.get('/posts/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const user = await db.get('SELECT id, nickname, profile_image_url, bio FROM Users WHERE id = ?', [id]);
-        if (user) {
-            res.json(user);
-        } else {
-            res.status(404).json({ detail: 'User not found' });
+        const post = await db.get(`
+            SELECT p.*, u.nickname, u.profile_image_url, 
+            E.name as exhibition_name, E.location as exhibition_location
+            FROM Posts p 
+            JOIN Users u ON p.user_id = u.id 
+            LEFT JOIN Exhibitions E ON p.exhibition_id = E.id
+            WHERE p.id = ?
+        `, [id]);
+        if (!post) {
+            return res.status(404).json({ detail: 'Post not found' });
         }
+        res.json(post);
     } catch (e) {
-        res.status(500).json({ detail: 'Failed to fetch user' });
+        res.status(500).json({ detail: 'Error fetching post' });
     }
 });
 
@@ -375,7 +512,7 @@ app.put('/posts/:id', upload.single('image'), async (req, res) => {
 
     try {
         await db.run(
-            `UPDATE Posts SET title=?, artist_name=?, image_url=?, description=?, rating=?, ai_summary=?, music_url=?, work_date=?, genre=?, tags=?, style=? WHERE id=?`,
+            `UPDATE Posts SET title=?, artist_name=?, image_url=?, description=?, rating=?, ai_summary=?, music_url=?, work_date=?, genre=?, tags=?, style=?, location_country=?, location_province=?, location_city=?, location_district=? WHERE id=?`,
             [
                 title !== undefined ? title : currentPost.title,
                 artist_name !== undefined ? artist_name : currentPost.artist_name,
@@ -389,6 +526,10 @@ app.put('/posts/:id', upload.single('image'), async (req, res) => {
                 finalGenre !== undefined ? finalGenre : currentPost.genre,
                 tags !== undefined ? (tags || '[]') : currentPost.tags,
                 style !== undefined ? style : currentPost.style,
+                req.body.location_country !== undefined ? req.body.location_country : currentPost.location_country,
+                req.body.location_province !== undefined ? req.body.location_province : currentPost.location_province,
+                req.body.location_city !== undefined ? req.body.location_city : currentPost.location_city,
+                req.body.location_district !== undefined ? req.body.location_district : currentPost.location_district,
                 id
             ]
         );
@@ -694,17 +835,7 @@ app.get('/users/:id/bookmarks', async (req, res) => {
 
 // 2. Posts (continued)
 // RULE: AI analysis uses ONLY Posts.ai_summary field (analysis_id/art_analysis table NOT used)
-app.get('/posts/:id', async (req, res) => {
-    const { id } = req.params;
-    const post = await db.get(`
-        SELECT p.*, u.nickname,
-        (SELECT COUNT(*) FROM Likes WHERE post_id = p.id) as like_count
-        FROM Posts p
-        JOIN Users u ON p.user_id = u.id
-        WHERE p.id = ?
-    `, [id]);
-    res.json(post);
-});
+
 
 // AI Analyze Post
 // ================================================================================
@@ -757,6 +888,66 @@ app.post('/posts/:id/analyze', async (req, res) => {
     } catch (e) {
         console.error('[Analysis Error]', e);
         res.status(500).json({ detail: 'AI 분석 실패' });
+    }
+});
+
+// --- MY PAGE STATISTICS ---
+
+// Get user works grouped by location (For Map)
+app.get('/users/:id/works/locations', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        // We select id, image_url, and location fields. 
+        // Note: Using image_url for the sticker.
+        const posts = await db.all(
+            `SELECT id, image_url, title, artist_name, location_province, location_city, location_district 
+             FROM Posts 
+             WHERE user_id = ? AND location_province IS NOT NULL`,
+            [id]
+        );
+
+        // Group by Province -> City/District
+        const locations = posts.reduce((acc, post) => {
+            const province = post.location_province;
+            const city = post.location_city;
+            
+            if (!acc[province]) acc[province] = {};
+            
+            // If city exists, grouping by city is primary for Gyeonggi/Seoul drill-down
+            if (city) {
+                if (!acc[province][city]) acc[province][city] = [];
+                acc[province][city].push(post);
+            } else {
+                // Fallback for province-only data
+                if (!acc[province]['unknown']) acc[province]['unknown'] = [];
+                acc[province]['unknown'].push(post);
+            }
+            return acc;
+        }, {});
+
+        res.json(locations);
+    } catch (error) {
+        console.error('Error fetching location works (FULL):', error);
+        res.status(500).json({ error: 'Server error', details: error.message });
+    }
+});
+
+// Get user stats (Genre, Style distributions)
+app.get('/users/:id/stats/analysis', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const genres = await db.all(
+            `SELECT genre, COUNT(*) as count FROM Posts WHERE user_id = ? AND genre IS NOT NULL GROUP BY genre`,
+            [id]
+        );
+        const styles = await db.all(
+            `SELECT style, COUNT(*) as count FROM Posts WHERE user_id = ? AND style IS NOT NULL GROUP BY style`,
+            [id]
+        );
+        res.json({ genres, styles });
+    } catch (error) {
+        console.error('Error fetching stats (FULL):', error);
+        res.status(500).json({ error: 'Server error', details: error.message });
     }
 });
 

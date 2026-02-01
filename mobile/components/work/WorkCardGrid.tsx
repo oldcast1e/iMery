@@ -38,8 +38,8 @@ export default function WorkCardGrid({ work, onPress, layout = 'medium' }: Props
 
 const styles = StyleSheet.create({
     card: {
-        flex: 1,
-        // height is determined by aspect ratio controlled by image or parent
+        width: '100%',
+        // flex: 1 removed to prevent collapse in non-flex-height containers
         borderRadius: 16,
         overflow: 'hidden',
         backgroundColor: colors.white,

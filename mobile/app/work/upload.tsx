@@ -10,6 +10,7 @@ import api from '@services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, typography, shadowStyles } from '../../constants/designSystem';
 import TagSelector from '../../components/work/TagSelector';
+import * as Location from 'expo-location';
 
 export default function UploadScreen() {
     const router = useRouter();
@@ -32,7 +33,77 @@ export default function UploadScreen() {
         review: '',
         tags: [] as { id: string; label: string; path: string[] }[],
         visibility: 'public', // ADDED
+        location_country: '대한민국',
+        location_province: '',
+        location_city: '',
+        location_district: '',
+        exhibition_name: '', // Added
     });
+
+    React.useEffect(() => {
+        (async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                return; // Permission denied logic handled globally or separate check
+            }
+
+            let location = await Location.getCurrentPositionAsync({});
+            let reverseGeocode = await Location.reverseGeocodeAsync({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude
+            });
+
+            if (reverseGeocode.length > 0) {
+                const address = reverseGeocode[0];
+                let province = address.region || ''; // Do/Province or Metro City
+                let city = address.city || '';       // City (Si)
+                const district = address.district || ''; // Gu/Gun
+
+                // Special City Logic (Metro Cities & Sejong)
+                // If 'region' is a Metro City (Seoul, Busan, etc.), it acts as Province, and City might be null or same.
+                // We want to store:
+                // Province: Seoul, Busan, etc.
+                // City: null (or empty string) because they don't have 'Si' under them usually in this context, or Gu is the next level.
+                // District: Gu
+                
+                // Expo Location often returns 'Seoul' as region and null/Seoul as city.
+                // List of Special Cities in KR
+                const specialCities = ['서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시', '세종특별자치시'];
+                
+                // Normalization attempts (Expo sometimes returns English or partial)
+                // Assuming Korean locale for now or handling both if needed. 
+                // For this implementation, we trust the device returns Korean if system is Korean, 
+                // or we map if we see 'Seoul'.
+                
+                // Simple Logic:
+                // If province is in specialCities (or fuzzy match '서울'), set city to empty.
+                
+                // Robust check:
+                if (province.includes('서울') || province.includes('Seoul')) province = '서울특별시';
+                if (province.includes('부산') || province.includes('Busan')) province = '부산광역시';
+                if (province.includes('대구') || province.includes('Daegu')) province = '대구광역시';
+                if (province.includes('인천') || province.includes('Incheon')) province = '인천광역시';
+                if (province.includes('광주') || province.includes('Gwangju')) province = '광주광역시';
+                if (province.includes('대전') || province.includes('Daejeon')) province = '대전광역시';
+                if (province.includes('울산') || province.includes('Ulsan')) province = '울산광역시';
+                if (province.includes('세종') || province.includes('Sejong')) province = '세종특별자치시';
+
+                const isSpecial = specialCities.some(sc => province === sc);
+
+                if (isSpecial) {
+                    city = ''; // Special cities don't have a 'Si' intermediate usually
+                }
+
+                setFormData(prev => ({
+                    ...prev,
+                    location_country: address.country || '대한민국',
+                    location_province: province,
+                    location_city: city,
+                    location_district: district
+                }));
+            }
+        })();
+    }, []);
 
     // UI States
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -128,10 +199,15 @@ export default function UploadScreen() {
             const dd = String(formData.date.getDate()).padStart(2, '0');
             data.append('work_date', `${yyyy}.${mm}.${dd}`);
 
-            data.append('genre', formData.genre);
-            data.append('style', formData.style);
+
+            // data.append('style', formData.style); // Removed per request
             data.append('rating', String(formData.rating));
             data.append('visibility', formData.visibility); // ADDED
+            data.append('exhibition_name', formData.exhibition_name); // Send Exhibition Name
+            data.append('location_country', formData.location_country);
+            data.append('location_province', formData.location_province);
+            data.append('location_city', formData.location_city);
+            data.append('location_district', formData.location_district);
             
             
             // Tags: Send array of labels or objects? ReviewForm sending array of objects, 
@@ -296,17 +372,7 @@ export default function UploadScreen() {
                             />
                         </View>
 
-                        {/* Style */}
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.labelText}>STYLE (화풍)</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="예: 인상주의, 표현주의, 추상화..."
-                                value={formData.style}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, style: text }))}
-                                placeholderTextColor={colors.gray400}
-                            />
-                        </View>
+                        {/* Style Input Removed */}
 
                         {/* Date */}
                         <View style={styles.inputGroup}>
@@ -333,26 +399,16 @@ export default function UploadScreen() {
                             )}
                         </View>
 
-                        {/* Genre */}
+                        {/* Exhibition Name (Replaces Genre) */}
                         <View style={styles.inputGroup}>
-                            <Text style={styles.labelText}>GENRE</Text>
-                            <View style={styles.genreRow}>
-                                {genres.map((g) => (
-                                    <TouchableOpacity
-                                        key={g}
-                                        onPress={() => setFormData(prev => ({ ...prev, genre: g }))}
-                                        style={[
-                                            styles.genreChip,
-                                            formData.genre === g && styles.genreChipActive
-                                        ]}
-                                    >
-                                        <Text style={[
-                                            styles.genreText,
-                                            formData.genre === g && styles.genreTextActive
-                                        ]}>{g}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
+                            <Text style={styles.labelText}>EXHIBITION LOCATION</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="전시회 장소 (이름)을 입력하세요"
+                                value={formData.exhibition_name}
+                                onChangeText={(text) => setFormData(prev => ({ ...prev, exhibition_name: text }))}
+                                placeholderTextColor={colors.gray400}
+                            />
                         </View>
 
                         {/* Tags */}

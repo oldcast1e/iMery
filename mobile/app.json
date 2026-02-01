@@ -19,7 +19,11 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Allow iMery to access your camera to capture artwork.",
         "NSPhotoLibraryUsageDescription": "Allow iMery to access your photos to upload artwork.",
-        "NSMicrophoneUsageDescription": "Allow iMery to access microphone for video."
+        "NSMicrophoneUsageDescription": "Allow iMery to access microphone for video.",
+        "NSLocationWhenInUseUsageDescription": "Allows iMery to save where you found this artwork."
+      },
+      "config": {
+        "googleMapsApiKey": ""
       }
     },
     "android": {
@@ -32,9 +36,16 @@
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
       ],
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "config": {
+        "googleMaps": {
+          "apiKey": ""
+        }
+      }
     },
     "web": {
       "bundler": "metro",
@@ -53,6 +64,12 @@
         "expo-camera",
         {
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
         }
       ],
       "expo-font",
