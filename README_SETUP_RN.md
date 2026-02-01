@@ -1,7 +1,7 @@
 # iMery Developer Context & Setup Guide
 
-> **Current Version**: v2.2 (Mobile Stable)
-> **Last Updated**: 2026.01.30
+> **Current Version**: v2.6 (MVP Complete)
+> **Last Updated**: 2026.02.02
 > **Document Type**: Developer Handoff & Architecture Context
 
 ### Qiuck Start
@@ -53,7 +53,28 @@ It allows users to archive art exhibitions, analyze artwork styles using AI, and
 
 ### 📱 Mobile Era (React Native)
 
-#### **v.2.4 (Current Stable) - 2026.02.01**
+#### **v.2.5 (Current Stable) - 2026.02.01**
+
+- **I-Activity Page Redesign**:
+  - **Likes Tab**: "Instagram-style" 3-column full-width image grid with 1px gaps.
+  - **Filters**: "Newest", "All Dates", "All Authors" header with Sorting functionality.
+  - **Unified Header**: Merged "I - Activity" title into the main navigation bar for zero-gap layout.
+  - **Full Screen**: Optimized layout to use full screen height (removed bottom whitespace).
+- **Bug Fixes**:
+  - **Add Work**: Removed redundant "STYLE" input.
+  - **Work Detail**: Fixed Location display to prioritize "Exhibition Name" > "City/Province".
+
+#### **v.2.6 (MVP Complete) - 2026.02.02**
+
+- **I-Record (Taste Analysis) Overhaul**:
+  - **Activity Heatmap**: Visualizes upload frequency over the last 5 months (GitHub Contribution style).
+  - **Taste Statistics**: Top Genres, Art Styles, and Favorite Artists ranking.
+  - **Compact UI**: Optimized dashboard layout with side-by-side charts and signature blue styling.
+  - **Backend**: Enhanced `/stats/analysis` endpoint to aggregate activity/artist data.
+
+#### **v.2.5 - 2026.02.01**
+
+#### **v.2.4 - 2026.02.01**
 
 - **Ticket UI Redesign**:
   - Implemented **"Original Ticket"** vertical card style with **Soft Square Scalloped Edges**.

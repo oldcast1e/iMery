@@ -13,7 +13,9 @@
 | -------- | ------ | ---------- | ------------------------------------------------------------------------------- |
 | 버전     | 구분   | 상태       | 주요 특징                                                                       |
 | -------- | ------ | ---------- | ------------------------------------------------------------------------------- |
-| **v2.4** | Mobile | **Stable** | **Ticket UI**: Original Ticket 디자인, 제스처(Swipe), 스캘럽 엣지 구현          |
+| **v2.6** | Mobile | **Stable** | **I-Record**: 활동 히트맵(GitHub Style), 취향 분석(장르/화풍/작가) 대시보드     |
+| v2.5     | Mobile | Legacy     | **I-Activity**: 인스타그램 스타일 Grid, 필터/정렬, 통합 헤더 디자인             |
+| v2.4     | Mobile | Legacy     | **Ticket UI**: Original Ticket 디자인, 제스처(Swipe), 스캘럽 엣지 구현          |
 | v2.2     | Mobile | Legacy     | **UI Polish**: 홈 위젯(Carousel), 탭바 그림자 제거, "Safe Audio" 로딩 패턴 적용 |
 | v2.1     | Mobile | Legacy     | 피드/아카이브 탭 분리, 공개 범위 설정(친구공개), 캘린더 뷰                      |
 | v2.0     | Mobile | Legacy     | React Native + Expo 마이그레이션 완료                                           |

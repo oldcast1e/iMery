@@ -211,3 +211,51 @@ _관람객이 얻는 정보와 맥락_
   - 마이그레이션된 전시회의 장소를 `Sejong Museum Gallery`에서 실제 데이터 기반으로 분기 처리 (Future Work).
 
 ---
+
+## v.2.5 (2026.02.01)
+
+### [Feature] I-Activity (Grid & Filter)
+
+- **Instagram-Style Grid**:
+  - 3열 그리드 레이아웃 (1px Gap).
+  - 정사각형(`aspect-square`) 썸네일로 통일감 부여.
+- **Filter & Sort**:
+  - **정렬**: 최신순 / 과거순.
+  - **필터**: 날짜별(전체/최근), 작가별 보기 기능.
+- **Header Unification**:
+  - 기존 `Stack` 헤더를 커스텀 헤더와 통합하여 이질감 제거.
+  - "뒤로가기" 버튼과 페이지 타이틀("I - Activity") 정렬 최적화.
+
+---
+
+## v.2.6 (2026.02.02) - MVP Finalization
+
+### [Feature] I-Record (Taste Analysis Dashboard)
+
+**기획 의도**: 사용자의 수집 성향을 시각화하여 "나만의 미술관"이라는 가치를 전달. 단순 리스트가 아닌 **분석 리포트** 형태로 제공.
+
+1.  **Activity Heatmap (작품 활동)**:
+    - **GitHub Contribution Graph** 스타일 차용.
+    - 최근 5개월(20주)간의 업로드 빈도를 히트맵으로 시각화.
+    - **Design**: `Mon/Wed/Fri` 라벨, 월(Month) 표시, **Signature Blue** (`#1E3A8A` ~ `#EFF6FF`) 컬러 스케일 적용.
+    - **Data**: `GET /stats/analysis` -> `activity` (Daily Count) 연동.
+
+2.  **Taste Statistics (취향 분석)**:
+    - **Top Artists**: 가장 많이 수집한 작가 TOP 10 (가로 스크롤).
+    - **Preferred Genre/Style**: "가장 많이 본 장르", "선호하는 화풍"을 **Side-by-Side** 차트로 시각화.
+    - **Insight**: 데이터가 없을 경우 "아직 분석할 데이터가 충분하지 않아요" 엠티 스테이트 제공.
+
+### [Backend] Stats Endpoint Upgrade
+
+- `GET /users/:id/stats/analysis` 확장:
+  - 기존: `genres`, `styles` 만 반환.
+  - 추가: `artists` (Top 10), `activity` (Daily Aggregation).
+  - **Fix**: `GROUP BY` 쿼리 최적화로 성능 확보.
+
+### [UI] Compact Layout
+
+- **Dashboard Density**: 한 화면에 주요 정보가 들어오도록 패딩 및 마진 축소.
+- **Vertical Stacking**: 차트 가독성을 위해 그래프는 세로 배치(Full Width) 유지.
+- **Color Identity**: 앱 전반에 걸쳐 **Blue Primary Color** 통일.
+
+---

@@ -306,6 +306,45 @@ app.post('/posts/', upload.single('image'), async (req, res) => {
 // ...
     }
 });
+// Analysis Stats (I-Record)
+app.get('/users/:id/stats/analysis', async (req, res) => {
+    const { id } = req.params;
+    try {
+        // Helper to get stats from Likes AND Bookmarks (Taste Analysis)
+        const getStats = async (column) => {
+            return await db.all(`
+                SELECT p.${column} as label, COUNT(*) as count
+                FROM Posts p
+                WHERE (
+                    p.id IN (SELECT post_id FROM Likes WHERE user_id = ?) 
+                    OR 
+                    p.id IN (SELECT post_id FROM Bookmarks WHERE user_id = ?)
+                )
+                AND p.${column} IS NOT NULL AND p.${column} != ''
+                GROUP BY p.${column}
+                ORDER BY count DESC
+                LIMIT 5
+            `, [id, id]);
+        };
+
+        const genres = await getStats('genre');
+        const styles = await getStats('style');
+        const artists = await getStats('artist_name');
+
+        // Activity Heatmap (My Uploads)
+        const activity = await db.all(`
+            SELECT DATE(created_at) as date, COUNT(*) as count 
+            FROM Posts 
+            WHERE user_id = ? 
+            GROUP BY DATE(created_at)
+        `, [id]);
+
+        res.json({ genres, styles, artists, activity });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ detail: 'Analysis failed' });
+    }
+});
 
 // --- Exhibition Endpoints ---
 
@@ -941,10 +980,25 @@ app.get('/users/:id/stats/analysis', authenticateToken, async (req, res) => {
             [id]
         );
         const styles = await db.all(
-            `SELECT style, COUNT(*) as count FROM Posts WHERE user_id = ? AND style IS NOT NULL GROUP BY style`,
+            `SELECT style, COUNT(*) as count FROM Posts WHERE user_id = ? AND style IS NOT NULL GROUP BY style ORDER BY count DESC LIMIT 5`,
             [id]
         );
-        res.json({ genres, styles });
+        const artists = await db.all(
+            `SELECT artist_name as label, COUNT(*) as count FROM Posts WHERE user_id = ? AND artist_name IS NOT NULL GROUP BY artist_name ORDER BY count DESC LIMIT 10`,
+            [id]
+        );
+        
+        // Activity for Heatmap (Group by YYYY-MM-DD)
+        const activity = await db.all(
+            `SELECT strftime('%Y-%m-%d', created_at) as date, COUNT(*) as count 
+             FROM Posts 
+             WHERE user_id = ? 
+             GROUP BY date 
+             ORDER BY date ASC`,
+            [id]
+        );
+
+        res.json({ genres, styles, artists, activity });
     } catch (error) {
         console.error('Error fetching stats (FULL):', error);
         res.status(500).json({ error: 'Server error', details: error.message });
