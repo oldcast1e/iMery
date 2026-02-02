@@ -1,9 +1,12 @@
-# iMery Setup & Execution Guide (v1.5)
+# iMery Setup (Legacy Web & Backend Reference)
 
-**Complete Developer & Agent Handoff Documentation**
+> **⚠️ NOTE**: This document is for the **Legacy React Web** version and general **Backend/DB** setup.
+> For the **Mobile App (Current)**, please refer to: **[README_SETUP_RN.md](./README_SETUP_RN.md)**.
 
-이 문서는 iMery 프로젝트의 설치, 설정, 실행 방법 및 전체 아키텍처를 상세히 설명합니다.  
-다른 개발자나 AI 에이전트가 이 문서만으로도 프로젝트를 완전히 이해하고 작업을 이어받을 수 있도록 작성되었습니다.
+**Complete Developer & Agent Handoff Documentation (Web/Backend)**
+
+이 문서는 iMery 프로젝트의 (구버전) 웹 설정 및 공통 백엔드 아키텍처를 설명합니다.
+모바일 개발자는 `README_SETUP_RN.md`를 우선적으로 참고하세요.
 
 ---
 
@@ -31,16 +34,19 @@
 프로젝트 실행을 위해 다음 소프트웨어가 설치되어 있어야 합니다.
 
 ### 필수 요구사항
+
 - **Node.js** v18.0.0 이상 (v20+ 권장)
 - **npm** 9.0+ (Node.js 설치 시 자동 설치)
 - **Git** 2.30+ (버전 관리 및 협업용)
 
 ### 클라우드 서비스
+
 - **AWS Account** - S3 이미지 스토리지용
 - **TiDB Cloud Account** - MySQL 호환 데이터베이스
 - **RunPod Account** (선택) - AI 이미지 분석용
 
 ### 권장 개발 도구
+
 - **VSCode** with extensions:
   - ESLint
   - Prettier
@@ -75,6 +81,7 @@ cd ..
 ```
 
 **설치되는 주요 패키지:**
+
 - **Frontend**: React 19, Vite, Tailwind CSS, Framer Motion, Lucide React
 - **Backend**: Express, MySQL2, bcryptjs, JWT, AWS SDK S3, Multer
 
@@ -88,6 +95,7 @@ cd ..
 서버 실행 시 `server/db.js`가 자동으로 테이블을 생성합니다.
 
 **데이터베이스 스키마:**
+
 - `Users` - 사용자 계정 (bcrypt 해싱)
 - `Posts` - 작품 기록 및 AI 분석 결과
 - `Friendships` - 친구 관계
@@ -148,6 +156,7 @@ node index.js
 ```
 
 **성공 시 출력:**
+
 ```
 [dotenv] injecting env (9) from .env
 Connecting to TiDB/MySQL...
@@ -164,6 +173,7 @@ npm run dev
 ```
 
 **성공 시 출력:**
+
 ```
 VITE v7.3.1  ready in 733 ms
 
@@ -180,6 +190,7 @@ VITE v7.3.1  ready in 733 ms
 ## 5. 개발 환경 상세 (Development Environment)
 
 ### 5.1 운영체제 지원
+
 - **macOS** (Primary) - Apple Silicon 및 Intel 모두 지원
 - **Linux** - Ubuntu 20.04+, Fedora 34+
 - **Windows** - WSL2 권장 (네이티브 지원 가능)
@@ -187,11 +198,13 @@ VITE v7.3.1  ready in 733 ms
 ### 5.2 Git 워크플로우
 
 **브랜치 전략:**
+
 - `main` - 프로덕션 안정 버전
 - `v.1.5`, `v.1.4` 등 - 기능 버전 브랜치
 - 작업 시 항상 최신 버전 브랜치에서 pull
 
 **일반적인 작업 흐름:**
+
 ```bash
 # 최신 v.1.5 브랜치로 전환
 git checkout v.1.5
@@ -210,10 +223,12 @@ git push origin main v.1.5
 ### 5.3 터미널 설정
 
 **필수 터미널 2개:**
+
 1. **터미널 1** - 백엔드 서버 (`node index.js`)
 2. **터미널 2** - 프론트엔드 개발 서버 (`npm run dev`)
 
 **권장 터미널:**
+
 - macOS: iTerm2 또는 기본 Terminal
 - Windows: Windows Terminal + WSL2
 - Linux: GNOME Terminal 또는 Konsole
@@ -221,6 +236,7 @@ git push origin main v.1.5
 ### 5.4 에디터 설정 (VSCode)
 
 **.vscode/settings.json** (권장):
+
 ```json
 {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -340,12 +356,12 @@ iMery/
 
 ### 6.2 핵심 파일 설명
 
-| 파일 경로 | 크기 | 역할 |
-|---------|------|------|
-| `src/App.jsx` | 17KB | 메인 애플리케이션, 라우팅, 전역 상태 |
-| `server/index.js` | 23KB | Express API 서버, 모든 엔드포인트 |
-| `server/db.js` | 6KB | DB 초기화, 스키마 정의 |
-| `src/api/client.js` | - | HTTP 클라이언트, API 호출 래퍼 |
+| 파일 경로           | 크기 | 역할                                 |
+| ------------------- | ---- | ------------------------------------ |
+| `src/App.jsx`       | 17KB | 메인 애플리케이션, 라우팅, 전역 상태 |
+| `server/index.js`   | 23KB | Express API 서버, 모든 엔드포인트    |
+| `server/db.js`      | 6KB  | DB 초기화, 스키마 정의               |
+| `src/api/client.js` | -    | HTTP 클라이언트, API 호출 래퍼       |
 
 ---
 
@@ -354,10 +370,12 @@ iMery/
 ### 7.1 기술 스택
 
 **Core:**
+
 - **React 19** - 최신 React with Concurrent Features
 - **Vite 7** - 빠른 개발 서버 및 HMR
 
 **Styling:**
+
 - **Tailwind CSS 3.4** - Utility-first CSS
 - **Framer Motion 12** - 애니메이션 라이브러리
 - **Lucide React** - 아이콘 라이브러리
@@ -365,6 +383,7 @@ iMery/
 ### 7.2 컴포넌트 아키텍처
 
 **계층 구조:**
+
 ```
 App.jsx (Root)
 ├── Header (Widget)
@@ -376,6 +395,7 @@ App.jsx (Root)
 ```
 
 **라우팅 전략:**
+
 - SPA (Single Page Application)
 - `activeView` 상태로 뷰 전환
 - 뒤로가기 버튼은 `onBack` 콜백 사용
@@ -383,12 +403,13 @@ App.jsx (Root)
 ### 7.3 상태 관리
 
 **글로벌 상태 (App.jsx):**
+
 ```javascript
 // 인증 상태
-const [user, setUser] = useLocalStorage('imery-user', null);
+const [user, setUser] = useLocalStorage("imery-user", null);
 
 // UI 상태
-const [activeView, setActiveView] = useState('home');
+const [activeView, setActiveView] = useState("home");
 const [selectedWork, setSelectedWork] = useState(null);
 
 // 데이터 상태
@@ -398,6 +419,7 @@ const [bookmarkedIds, setBookmarkedIds] = useLocalStorage(bookmarksKey, []);
 ```
 
 **로컬 스토리지 사용:**
+
 - `imery-user` - 사용자 정보 및 JWT 토큰
 - `imery-folders-{user_id}` - 사용자별 폴더
 - `imery-bookmarks-{user_id}` - 사용자별 북마크
@@ -405,12 +427,14 @@ const [bookmarkedIds, setBookmarkedIds] = useLocalStorage(bookmarksKey, []);
 ### 7.4 주요 페이지 설명
 
 #### HomeView.jsx
+
 - 사용자의 작품 대시보드
 - 장르별 필터링
 - 평점별 필터링
 - "더보기" 페이지네이션 (5개씩)
 
 #### WorkDetailView.jsx
+
 - 작품 상세 정보 표시
 - **AI 분석 기능** - 버튼 클릭 시 AI 분석 실행
 - **음악 자동 재생** - 1초 간격 루프
@@ -418,11 +442,13 @@ const [bookmarkedIds, setBookmarkedIds] = useLocalStorage(bookmarksKey, []);
 - 댓글 시스템
 
 #### ArchiveView.jsx
+
 - 캘린더 뷰
 - 날짜별 작품 필터링
 - 음악 토글 (deprecated, WorkDetailView로 이동)
 
 #### WorksView.jsx
+
 - 폴더 기반 작품 관리
 - 그리드 레이아웃
 - 편집/삭제 버튼 (호버 시 표시)
@@ -430,6 +456,7 @@ const [bookmarkedIds, setBookmarkedIds] = useLocalStorage(bookmarksKey, []);
 ### 7.5 API 클라이언트 구조
 
 **src/api/client.js:**
+
 ```javascript
 const BASE_URL = 'http://localhost:3001';
 
@@ -437,21 +464,21 @@ const api = {
   // Auth
   login: async (email, password) => { ... },
   register: async (email, password, nickname) => { ... },
-  
+
   // Posts
   getPosts: async () => { ... },
   createPost: async (formData) => { ... },
   updatePost: async (id, formData) => { ... },
   deletePost: async (id) => { ... },
-  
+
   // AI Analysis
   analyzePost: async (postId) => { ... },
-  
+
   // Social
   searchUsers: async (nickname) => { ... },
   sendFriendRequest: async (requesterId, addresseeId) => { ... },
   getFriends: async (userId) => { ... },
-  
+
   // Interactions
   toggleLike: async (postId, userId) => { ... },
   toggleBookmark: async (userId, postId) => { ... },
@@ -467,18 +494,22 @@ const api = {
 ### 8.1 기술 스택
 
 **Core:**
+
 - **Node.js 20+** - JavaScript 런타임
 - **Express 4** - 웹 프레임워크
 
 **Database:**
+
 - **TiDB Cloud** (Production) - MySQL 호환 클라우드 DB
 - **SQLite3** (Development) - 로컬 개발용
 
 **Security:**
+
 - **bcryptjs** - 비밀번호 해싱
 - **jsonwebtoken** - JWT 인증
 
 **Storage:**
+
 - **AWS SDK S3** - 이미지 저장
 - **Multer** - 파일 업로드 미들웨어
 - **Multer-S3** - S3 직접 업로드
@@ -486,6 +517,7 @@ const api = {
 ### 8.2 데이터베이스 스키마
 
 **Users Table:**
+
 ```sql
 CREATE TABLE Users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -497,6 +529,7 @@ CREATE TABLE Users (
 ```
 
 **Posts Table:**
+
 ```sql
 CREATE TABLE Posts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -525,6 +558,7 @@ CREATE TABLE Posts (
 ```
 
 **Friendships Table:**
+
 ```sql
 CREATE TABLE Friendships (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -542,10 +576,12 @@ CREATE TABLE Friendships (
 ### 8.3 API 엔드포인트
 
 **인증:**
+
 - `POST /auth/register` - 회원가입
 - `POST /auth/login` - 로그인
 
 **작품 관리:**
+
 - `GET /posts/` - 모든 작품 조회 (⚠️ user_id 필터 없음 - 알려진 이슈)
 - `GET /posts/:id` - 특정 작품 조회
 - `POST /posts/` - 작품 생성 (Multer S3 업로드)
@@ -553,18 +589,21 @@ CREATE TABLE Friendships (
 - `DELETE /posts/:id` - 작품 삭제
 
 **AI 분석:**
+
 - `POST /analyze/:id` - AI 이미지 분석 실행
   - RunPod API 호출
   - Gemini API 호출 (음악 생성)
   - 결과 DB 저장
 
 **소셜:**
+
 - `GET /users/search?nickname=...` - 사용자 검색
 - `POST /friends/request` - 친구 요청
 - `GET /friends/:userId` - 친구 목록
 - `POST /friends/accept/:friendshipId` - 친구 승인
 
 **상호작용:**
+
 - `POST /likes/toggle` - 좋아요 토글
 - `POST /bookmarks/toggle` - 북마크 토글
 - `GET /comments/:postId` - 댓글 조회
@@ -581,12 +620,12 @@ const upload = multer({
     key: (req, file, cb) => {
       const uniqueName = `${Date.now()}-${file.originalname}`;
       cb(null, uniqueName);
-    }
-  })
+    },
+  }),
 });
 
 // 사용 예
-app.post('/posts/', upload.single('image'), async (req, res) => {
+app.post("/posts/", upload.single("image"), async (req, res) => {
   const imageUrl = req.file.location; // S3 URL
   // DB에 저장
 });
@@ -615,6 +654,7 @@ app.post('/posts/', upload.single('image'), async (req, res) => {
 3. 가입 후 자동 로그인 또는 수동 로그인
 
 **테스트 계정:**
+
 ```
 ID: usera@example.com
 PW: password123
@@ -652,12 +692,14 @@ Nickname: UserA
 ### 9.4 친구 추가 및 소셜
 
 **친구 추가:**
+
 1. **[마이]** 탭 → 친구 찾기
 2. 닉네임 검색
 3. **친구 요청** 클릭
 4. 상대방이 알림에서 수락
 
 **친구 작품 보기:**
+
 1. **[커뮤니티]** 탭 (deprecated, 현재 미사용)
 2. 친구 작품 피드 표시
 3. 좋아요/북마크 가능
@@ -665,6 +707,7 @@ Nickname: UserA
 ### 9.5 음악 재생 (v.1.5 신규)
 
 **WorkDetailView:**
+
 - 페이지 진입 시 자동 재생
 - 1초 간격으로 반복 재생
 - 페이지 나가면 자동 정지
@@ -677,6 +720,7 @@ Nickname: UserA
 ### 10.1 주요 변경사항 (2026.01.22)
 
 #### UI/UX 개선
+
 1. **음악 재생 강화**
    - 무조건 자동 재생 (`autoPlay` 속성)
    - 1초 간격 루프 재생 (`setTimeout` 사용)
@@ -696,6 +740,7 @@ Nickname: UserA
    - WorkDetailView 불필요한 여백 제거
 
 #### 버그 수정
+
 1. 비동기 `music_url` 로딩 문제 해결
    - `useEffect` dependency에 `work.music_url` 추가
 2. 중복 `setTimeout` 클로저 해결
@@ -703,6 +748,7 @@ Nickname: UserA
 4. 불필요한 `)}` 제거
 
 #### 파일 변경
+
 ```
 Modified:
 - src/App.jsx (중복 import 수정)
@@ -746,6 +792,7 @@ Deleted:
 ### 11.1 코드베이스 이해 방법
 
 **1단계: 문서 읽기**
+
 ```
 1. README.md - 프로젝트 개요
 2. README_SETUP.md (본 문서) - 전체 구조
@@ -754,6 +801,7 @@ Deleted:
 ```
 
 **2단계: 핵심 파일 탐색**
+
 ```
 1. src/App.jsx - 전역 상태 및 라우팅 이해
 2. server/index.js - API 엔드포인트 파악
@@ -762,22 +810,26 @@ Deleted:
 ```
 
 **3단계: 기능별 컴포넌트 분석**
+
 - 특정 기능 수정 시 관련 페이지 컴포넌트 먼저 확인
 - `pages/` → `features/` → `widgets/` 순서로 탐색
 
 ### 11.2 일반적인 작업 패턴
 
 **UI 컴포넌트 수정:**
+
 1. 해당 페이지 컴포넌트 (`src/pages/`) 찾기
 2. Tailwind CSS 클래스 수정
 3. 필요시 `App.jsx` 전역 상태 확인
 
 **API 추가:**
+
 1. `server/index.js`에 엔드포인트 추가
 2. `src/api/client.js`에 클라이언트 함수 추가
 3. 페이지 컴포넌트에서 호출
 
 **DB 스키마 변경:**
+
 1. `server/db.js` 수정
 2. 로컬 `database.sqlite` 삭제 (자동 재생성)
 3. TiDB에 수동 마이그레이션 (필요시)
@@ -785,6 +837,7 @@ Deleted:
 ### 11.3 테스트 및 검증 절차
 
 **로컬 테스트:**
+
 ```bash
 # 1. 백엔드 시작
 cd server && node index.js
@@ -797,6 +850,7 @@ npm run dev
 ```
 
 **기능 검증:**
+
 1. 회원가입/로그인 테스트
 2. 작품 업로드 테스트
 3. AI 분석 테스트
@@ -806,22 +860,26 @@ npm run dev
 ### 11.4 디버깅 팁
 
 **프론트엔드 에러:**
+
 - 브라우저 콘솔 확인 (`F12`)
 - React DevTools 사용
 - `console.log()` 적극 활용
 
 **백엔드 에러:**
+
 - 터미널 1 (서버) 로그 확인
 - `server.log` 파일 확인 (있는 경우)
 - Postman으로 API 직접 테스트
 
 **데이터베이스 이슈:**
+
 - `server/check_*.js` 스크립트 실행
 - SQLite Browser로 로컬 DB 직접 확인
 
 ### 11.5 Git 협업 가이드
 
 **브랜치 생성:**
+
 ```bash
 git checkout v.1.5
 git pull origin v.1.5
@@ -829,6 +887,7 @@ git checkout -b feature/새기능명
 ```
 
 **커밋 메시지 규칙:**
+
 ```
 feat: 새 기능 추가
 fix: 버그 수정
@@ -839,6 +898,7 @@ test: 테스트 추가
 ```
 
 **병합 전 체크리스트:**
+
 - [ ] 로컬에서 정상 작동 확인
 - [ ] 콘솔 에러 없음
 - [ ] 주요 기능 테스트 완료
@@ -853,14 +913,14 @@ test: 테스트 추가
 ```json
 {
   "scripts": {
-    "dev": "vite --host",      // 개발 서버 (네트워크 노출)
-    "build": "vite build",     // 프로덕션 빌드
-    "preview": "vite preview"  // 빌드 미리보기
+    "dev": "vite --host", // 개발 서버 (네트워크 노출)
+    "build": "vite build", // 프로덕션 빌드
+    "preview": "vite preview" // 빌드 미리보기
   },
   "dependencies": {
-    "react": "^19.2.0",        // React 19
+    "react": "^19.2.0", // React 19
     "framer-motion": "^12.26.2", // 애니메이션
-    "lucide-react": "^0.562.0"  // 아이콘
+    "lucide-react": "^0.562.0" // 아이콘
   }
 }
 ```
@@ -871,15 +931,16 @@ test: 테스트 추가
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: true,  // 네트워크 접근 허용
-    port: 5173   // 포트
-  }
+    host: true, // 네트워크 접근 허용
+    port: 5173, // 포트
+  },
 });
 ```
 
 ### 12.3 tailwind.config.js
 
 **커스텀 색상:**
+
 ```javascript
 theme: {
   extend: {
@@ -897,6 +958,7 @@ theme: {
 ### 12.4 서버 환경 변수 (.env)
 
 **필수 변수:**
+
 ```bash
 DB_HOST=...           # TiDB 호스트
 DB_PORT=4000          # TiDB 포트
@@ -919,6 +981,7 @@ AWS_REGION=ap-southeast-2 # S3 리전
 **원인**: `.env` 파일 누락 또는 변수명 오류
 
 **해결:**
+
 ```bash
 cd server
 cat .env  # 파일 존재 확인
@@ -930,6 +993,7 @@ cat .env  # 파일 존재 확인
 **원인**: S3 권한 또는 리전 불일치
 
 **해결:**
+
 1. AWS IAM에서 S3 권한 확인
 2. `.env`의 `AWS_REGION` 확인
 3. 버킷 정책에서 Public Access 확인
@@ -937,12 +1001,14 @@ cat .env  # 파일 존재 확인
 ### Q3. 포트 충돌 (`EADDRINUSE`)
 
 **해결 (Mac/Linux):**
+
 ```bash
 lsof -ti:3001 | xargs kill -9  # 백엔드 포트
 lsof -ti:5173 | xargs kill -9  # 프론트엔드 포트
 ```
 
 **해결 (Windows PowerShell):**
+
 ```powershell
 Stop-Process -Id (Get-NetTCPConnection -LocalPort 3001).OwningProcess -Force
 ```
@@ -950,6 +1016,7 @@ Stop-Process -Id (Get-NetTCPConnection -LocalPort 3001).OwningProcess -Force
 ### Q4. `npm install` 실패
 
 **해결:**
+
 ```bash
 rm -rf node_modules package-lock.json
 npm cache clean --force
@@ -959,6 +1026,7 @@ npm install
 ### Q5. Vite `import` 에러
 
 **해결:**
+
 ```bash
 rm -rf .vite
 npm run dev
@@ -969,6 +1037,7 @@ npm run dev
 **원인**: RunPod 서버 응답 지연
 
 **해결:**
+
 - 네트워크 연결 확인
 - 서버 로그에서 요청 URL 확인
 - 재시도 (30-90초 대기)
@@ -993,9 +1062,10 @@ npm run dev
 3. 모바일 브라우저에서 해당 주소 접속
 
 **⚠️ API 주소 변경 필요:**
+
 ```javascript
 // src/api/client.js
-const BASE_URL = 'http://172.16.2.3:3001'; // PC의 Network IP
+const BASE_URL = "http://172.16.2.3:3001"; // PC의 Network IP
 ```
 
 ---
@@ -1003,6 +1073,7 @@ const BASE_URL = 'http://172.16.2.3:3001'; // PC의 Network IP
 ## 📞 문의 및 지원
 
 **문제 발생 시:**
+
 1. 이 문서의 문제 해결 섹션 확인
 2. GitHub Issues 검색
 3. 새 Issue 생성 (상세 로그 첨부)

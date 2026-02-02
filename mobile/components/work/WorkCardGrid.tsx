@@ -5,6 +5,12 @@ import { getImageUrl } from '../../utils/imageHelper';
 
 // ...
 
+interface Props {
+    work: any; // Using any for flexibility to handle both Feed Post and Work types. Or define specific Work interface.
+    onPress?: () => void;
+    layout?: 'small' | 'medium';
+}
+
 export default function WorkCardGrid({ work, onPress, layout = 'medium' }: Props) {
     const imageUrl = getImageUrl(work.image_url || work.thumbnail || work.image);
     
