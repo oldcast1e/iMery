@@ -384,6 +384,38 @@ export default function WorkDetailScreen() {
     };
 
     const renderAnalysisContent = () => {
+        // CASE NFC: Source is 'nfc' -> Show Description instead of AI Analysis
+        if (work.source === 'nfc' || effectiveData.source === 'nfc') {
+             return (
+                <LinearGradient
+                    colors={['#ECFDF5', '#fff', '#F0FDF4']} // Greenish tint
+                    start={{x:0, y:0}} 
+                    end={{x:1, y:1}}
+                    style={[styles.analysisBox, { borderColor: '#A7F3D0' }]}
+                >
+                    <View style={styles.analysisHeader}>
+                        <View style={[styles.sparkleIcon, { backgroundColor: '#10B981' }]}>
+                            <Tag size={16} color={colors.white} />
+                        </View>
+                        <Text style={[styles.analysisTitle, { color: '#065F46' }]}>작품 설명 (NFC)</Text>
+                    </View>
+                    
+                    <Text style={[styles.analysisText, { marginBottom: 0 }]}>
+                        {work.description || '작품 설명이 없습니다.'}
+                    </Text>
+
+                    {/* Optional: Show Price if available */}
+                    {work.price && (
+                         <View style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center' }}>
+                            <Text style={{ fontSize: 13, fontFamily: typography.sansBold, color: '#047857' }}>
+                                가격: {Number(work.price).toLocaleString()}원
+                            </Text>
+                         </View>
+                    )}
+                </LinearGradient>
+            );
+        }
+
         // Case 1: Result is ready and animation is done -> Show Result
         if (effectiveData.is_analyzed && (isResultVisible || !isAnalyzing)) {
             // NOTE: If isResultVisible is false but it is analyzed (e.g. revisited), we show it.

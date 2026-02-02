@@ -6,11 +6,12 @@ import { Camera, Image as ImageIcon, X, ArrowLeft, Star, Calendar } from 'lucide
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import api from '@services/api';
+import api from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, typography, shadowStyles } from '../../constants/designSystem';
 import TagSelector from '../../components/work/TagSelector';
 import * as Location from 'expo-location';
+import { NfcScanner } from '../../components/NfcScanner';
 
 export default function UploadScreen() {
     const router = useRouter();
@@ -105,33 +106,113 @@ export default function UploadScreen() {
         })();
     }, []);
 
+
     // UI States
     const [showDatePicker, setShowDatePicker] = useState(false);
+    // NFC State
+    const [nfcVisible, setNfcVisible] = useState(false);
 
     const genres = ['그림', '조각', '사진', '판화', '기타'];
 
+    // --- NFC Handling ---
+    const handleNfcRead = async (data: any) => {
+        setLoading(true);
+        setNfcVisible(false); // Close scanner first
+        try {
+            const userJson = await AsyncStorage.getItem('imery-user');
+            const user = userJson ? JSON.parse(userJson) : null;
+            if (!user) {
+                Alert.alert('오류', '로그인이 필요합니다.');
+                router.replace('/(tabs)/profile');
+                return;
+            }
+
+            console.log('NFC Data Read:', data);
+
+            // Construct FormData for API
+            const formData = new FormData();
+            formData.append('user_id', String(user.user_id || user.id));
+            formData.append('title', data.title || 'Untitled');
+            formData.append('artist_name', data.artist || 'Unknown');
+            formData.append('description', data.description || data.desc || '');
+            formData.append('exhibition_name', data.exhibitionName || data.exhibition || '');
+            
+            // Image handling: data.imageUrl
+            if (data.imageUrl || data.img) {
+                formData.append('image_url', data.imageUrl || data.img);
+            }
+            
+            formData.append('source', 'nfc');
+            if (data.price) formData.append('price', String(data.price));
+            formData.append('genre', data.genre || '그림');
+            if (data.style) formData.append('style', data.style);
+
+            // Date: Use Today
+            const date = new Date();
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            formData.append('work_date', `${yyyy}.${mm}.${dd}`);
+            
+            // Default Visibility
+            formData.append('visibility', 'public');
+
+            console.log('Sending NFC to API...');
+            const response = await api.createPost(formData);
+            console.log('API Response:', response);
+
+            const newId = response.id || (response.data && response.data.id);
+
+            Alert.alert('성공', '작품이 추가되었습니다!', [
+                { 
+                    text: '확인', 
+                    onPress: () => {
+                         if (newId) router.push(`/work/${newId}`);
+                         else router.back();
+                    }
+                }
+            ]);
+
+        } catch (e) {
+            console.error('NFC Add Error', e);
+            Alert.alert('실패', 'NFC 작품 등록 중 오류가 발생했습니다.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
     // --- Image Handling ---
     const pickImage = async (useCamera: boolean) => {
-        const { status } = useCamera
-            ? await ImagePicker.requestCameraPermissionsAsync()
-            : await ImagePicker.requestMediaLibraryPermissionsAsync();
+        try {
+            const { status } = useCamera
+                ? await ImagePicker.requestCameraPermissionsAsync()
+                : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-        if (status !== 'granted') {
-            Alert.alert('권한 필요', '사진을 업로드하려면 권한이 필요합니다.');
-            return;
-        }
+            if (status !== 'granted') {
+                Alert.alert('알림', '사진을 업로드하려면 권한이 필요합니다.');
+                return;
+            }
 
-        const result = useCamera
-            ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.8 })
-            : await ImagePicker.launchImageLibraryAsync({ 
-                mediaTypes: ImagePicker.MediaTypeOptions.Images, 
-                allowsEditing: true, 
-                aspect: [4, 3], 
-                quality: 0.8 
-            });
+            const result = useCamera
+                ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.8 })
+                : await ImagePicker.launchImageLibraryAsync({ 
+                    mediaTypes: ImagePicker.MediaTypeOptions.Images, 
+                    allowsEditing: true, 
+                    aspect: [4, 3], 
+                    quality: 0.8 
+                });
 
-        if (!result.canceled) {
-            processImage(result.assets[0].uri);
+            if (!result.canceled) {
+                processImage(result.assets[0].uri);
+            }
+        } catch (error) {
+            console.log('Image Picker Error:', error);
+            if (useCamera) {
+                Alert.alert('알림', '카메라를 실행할 수 없습니다. (시뮬레이터 미지원 등)');
+            } else {
+                Alert.alert('오류', '이미지를 불러오는 중 문제가 발생했습니다.');
+            }
         }
     };
 
@@ -271,12 +352,28 @@ export default function UploadScreen() {
                             <Text style={styles.selectionText}>갤러리</Text>
                         </TouchableOpacity>
                     </View>
+
+                    {/* NFC Button */}
+                    <TouchableOpacity 
+                        style={[styles.selectionCard, { marginTop: 15, width: '100%', flex: 0, paddingVertical: 15, justifyContent: 'center', backgroundColor: '#adccfdff', borderColor: '#6ba3ffff' }]}
+                        onPress={() => setNfcVisible(true)}
+                        activeOpacity={0.9}
+                    >
+                        <Text style={[styles.selectionText, { color: '#000000ff', fontFamily: typography.sansBold, fontSize: 15 }]}>태그 추가</Text>
+                    </TouchableOpacity>
+
                 </View>
                 {loading && (
                     <View style={styles.loadingOverlay}>
                         <ActivityIndicator size="large" color="#FFF" />
                     </View>
                 )}
+                
+                <NfcScanner 
+                    visible={nfcVisible}
+                    onRead={handleNfcRead}
+                    onClose={() => setNfcVisible(false)}
+                />
             </View>
         );
     }

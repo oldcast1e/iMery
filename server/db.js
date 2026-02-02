@@ -281,6 +281,14 @@ export const initDb = async () => {
   try {
     await pool.execute("ALTER TABLE Posts ADD COLUMN exhibition_id INT");
   } catch (e) {}
+  
+  // Posts: NFC Support (v2.7)
+  try {
+    await pool.execute("ALTER TABLE Posts ADD COLUMN price VARCHAR(50)");
+  } catch (e) {}
+  try {
+    await pool.execute("ALTER TABLE Posts ADD COLUMN source VARCHAR(50) DEFAULT 'manual'");
+  } catch (e) {}
 
   // Exhibitions: Ensure columns exist (if table existed previously without them)
   try {

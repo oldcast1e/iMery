@@ -5,6 +5,22 @@
 > 이 문서는 **React Native (Expo)** 기반의 iMery 모바일 앱 개발을 위한 상수, 아키텍처, 컨벤션을 담고 있습니다.
 > 신규 개발자는 이 문서를 정독 후 개발에 참여해주세요.
 
+### 🚀 Qiuck Start
+
+#### Terminal 1 (Backend) : Port 3001 (Auto-kill 3001 if busy)
+
+```bash
+cd server
+npm run dev
+```
+
+#### Terminal 2 (Mobile)
+
+```bash
+cd mobile
+npx expo start -c
+```
+
 ---
 
 ## 1. 🏗️ 프로젝트 구조 (Project Structure)

@@ -153,7 +153,8 @@ export default function HomeScreen() {
                         onPress={onPress}
                         onBookmarkToggle={handleBookmarkToggle}
                         isBookmarked={isBookmarked}
-                        onEdit={() => router.push({ pathname: '/work/edit', params: { id: item.id } })}
+                        // CRITICAL: Disable Edit for NFC sourced (or any non-manual) works if required
+                        onEdit={item.source === 'nfc' ? undefined : () => router.push({ pathname: '/work/edit', params: { id: item.id } })}
                         onDelete={() => handleDeleteWork(item.id)}
                     />
                 </View>

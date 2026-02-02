@@ -205,9 +205,10 @@ app.get('/users/:id', async (req, res) => {
 app.post('/posts/', upload.single('image'), async (req, res) => {
     // Supports both Multipart (with file) and JSON (base64 fallback or text only)
     // If file exists, use file path. If not, check body.image_url
-    const { user_id, title, artist_name, description, rating, ai_summary, music_url, work_date, genre, tags, style, visibility, exhibition_name } = req.body;
+    const { user_id, title, artist_name, description, rating, ai_summary, music_url, work_date, genre, tags, style, visibility, exhibition_name, price, source } = req.body;
     const finalGenre = genre || '그림'; // Legacy fallback if genre is still used internally
     const finalVisibility = visibility || 'public'; // 'public', 'friends', 'private'
+    const finalSource = source || 'manual'; // 'manual', 'nfc'
     let image_url = req.body.image_url;
 
     // Fix: Tags come as JSON string from FormData. Parse it first to avoid double-stringification.
@@ -269,7 +270,7 @@ app.post('/posts/', upload.single('image'), async (req, res) => {
         }
 
         const result = await db.run(
-            `INSERT INTO Posts (user_id, title, artist_name, image_url, description, rating, ai_summary, music_url, work_date, genre, tags, style, visibility, location_country, location_province, location_city, location_district, exhibition_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO Posts (user_id, title, artist_name, image_url, description, rating, ai_summary, music_url, work_date, genre, tags, style, visibility, location_country, location_province, location_city, location_district, exhibition_id, price, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 user_id, 
                 title, 
@@ -288,7 +289,9 @@ app.post('/posts/', upload.single('image'), async (req, res) => {
                 req.body.location_province || null,
                 req.body.location_city || null,
                 req.body.location_district || null,
-                exhibition_id
+                exhibition_id,
+                price || null,
+                finalSource
             ]
         );
         

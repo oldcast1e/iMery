@@ -20,7 +20,8 @@
         "NSCameraUsageDescription": "Allow iMery to access your camera to capture artwork.",
         "NSPhotoLibraryUsageDescription": "Allow iMery to access your photos to upload artwork.",
         "NSMicrophoneUsageDescription": "Allow iMery to access microphone for video.",
-        "NSLocationWhenInUseUsageDescription": "Allows iMery to save where you found this artwork."
+        "NSLocationWhenInUseUsageDescription": "Allows iMery to save where you found this artwork.",
+        "NFCReaderUsageDescription": "Allow iMery to scan NFC tags to add artwork."
       },
       "config": {
         "googleMapsApiKey": ""
@@ -73,7 +74,13 @@
         }
       ],
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "react-native-nfc-manager",
+        {
+          "nfcPermission": "Allow iMery to scan NFC tags to add artwork."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
