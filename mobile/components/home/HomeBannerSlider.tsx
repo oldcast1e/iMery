@@ -30,7 +30,7 @@ const BANNERS = [
     },
     {
         id: 4,
-        title: "2024 서울 아트 위크\nVIP 초청 이벤트",
+        title: "2026 서울 아트 위크\nVIP 초청 이벤트",
         subtitle: "단 3일간의 혜택",
         badge: "Event",
         image: "https://images.unsplash.com/photo-1561214115-f2f134cc4912?q=80&w=2809&auto=format&fit=crop", // Art Fair

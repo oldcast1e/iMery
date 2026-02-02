@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, Image, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Image, StyleSheet } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
+import { Toast } from '../../components/ui/Toast';
 
 export default function LoginScreen() {
     const { login } = useAuthStore();
@@ -13,10 +14,19 @@ export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    
+    // Toast State
+    const [toastVisible, setToastVisible] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
+
+    const showToast = (message: string) => {
+        setToastMessage(message);
+        setToastVisible(true);
+    };
 
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Error', 'Please fill in all fields');
+            showToast('이메일과 비밀번호를 모두 입력해주세요.');
             return;
         }
 
@@ -26,9 +36,14 @@ export default function LoginScreen() {
              // Store handles AsyncStorage and state update
             await login(response);
             // router.replace will be handled by _layout effect
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            Alert.alert('Login Failed', 'Invalid email or password');
+            // Check specifically for 401 or just show general error
+            if (error.response && error.response.status === 401) {
+                showToast('아이디 또는 비밀번호를 다시 확인해주세요.');
+            } else {
+                showToast('로그인에 실패했습니다. 네트워크 상태를 확인해주세요.');
+            }
         } finally {
             setLoading(false);
         }
@@ -41,6 +56,11 @@ export default function LoginScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.container}
         >
+            <Toast 
+                visible={toastVisible}
+                message={toastMessage}
+                onHide={() => setToastVisible(false)}
+            />
             <View style={styles.contentContainer}>
                 <View style={styles.headerSection}>
                     <Image 
