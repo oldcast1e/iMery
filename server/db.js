@@ -289,6 +289,9 @@ export const initDb = async () => {
   try {
     await pool.execute("ALTER TABLE Posts ADD COLUMN source VARCHAR(50) DEFAULT 'manual'");
   } catch (e) {}
+  try {
+    await pool.execute("ALTER TABLE Posts ADD COLUMN nfc_uuid VARCHAR(100) UNIQUE");
+  } catch (e) {}
 
   // Exhibitions: Ensure columns exist (if table existed previously without them)
   try {

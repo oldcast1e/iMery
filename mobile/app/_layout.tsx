@@ -59,6 +59,49 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, isLoading, isSplashScreenHidden]);
 
+  // --- NFC Deep Link Handler ---
+  useEffect(() => {
+    const handleDeepLink = async ({ url }: { url: string }) => {
+      console.log('🔗 Deep Link Detected:', url);
+      // Format: imery://artwork/view/{nfc_uuid}
+      if (url && url.includes('artwork/view/')) {
+        const nfcUuid = url.split('artwork/view/')[1];
+        if (!nfcUuid) return;
+
+        console.log('📍 NFC UUID:', nfcUuid);
+
+        // Check Auth (using existing authStore)
+        if (user) {
+           // Navigate to Detail Page
+           router.push({
+             pathname: '/work/[id]', // Maps to work/[id].tsx
+             params: { 
+               id: 'nfc_temp', // Fallback ID if needed, or query logic
+               nfcUuid: nfcUuid, 
+               source: 'NFC' 
+             }
+           });
+        } else {
+           // Redirect to Login with params
+           router.replace({
+             pathname: '/(auth)/login',
+             params: { redirectUuid: nfcUuid }
+           });
+        }
+      }
+    };
+
+    // 1. Cold Start
+    import('expo-linking').then(Linking => {
+        Linking.getInitialURL().then((url) => {
+            if (url) handleDeepLink({ url });
+        });
+        // 2. Listener
+        const subscription = Linking.addEventListener('url', handleDeepLink);
+        return () => subscription.remove();
+    });
+  }, [user]); // Re-run if user auth state changes (though typical deep link might come before auth check completes, but checked inside)
+
   useEffect(() => {
     if (fontsLoaded && !isLoading) {
       const inAuthGroup = segments[0] === '(auth)';

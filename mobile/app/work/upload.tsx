@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, Alert, ActivityIndicator, Platform, KeyboardAvoidingView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput, Alert, ActivityIndicator, Platform, KeyboardAvoidingView, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Camera, Image as ImageIcon, X, ArrowLeft, Star, Calendar } from 'lucide-react-native';
@@ -320,7 +320,9 @@ export default function UploadScreen() {
     if (step === 1) {
         return (
             <View style={styles.container}>
-                <TouchableOpacity style={styles.closeArea} onPress={() => router.back()} />
+                <TouchableOpacity style={styles.closeArea} onPress={() => router.back()} activeOpacity={1}>
+                    <View style={{ flex: 1 }} />
+                </TouchableOpacity>
                 <View style={styles.selectionSheet}>
                     <View style={styles.sheetHeader}>
                         <Text style={styles.sheetTitle}>작품 등록</Text>
